@@ -7,3 +7,6 @@ websockets
 opencv-python
 mediapipe
 numpy
+PyPDF2
+pydantic
+python-multipart
