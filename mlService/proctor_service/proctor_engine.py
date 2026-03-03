@@ -8,8 +8,9 @@ face_mesh = mp_face_mesh.FaceMesh(
     max_num_faces=1,
     refine_landmarks=True,
     min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
+    min_tracking_confidence=0.5,
 )
+
 
 def analyze_frame(image_array):
     """
@@ -19,12 +20,12 @@ def analyze_frame(image_array):
     # MediaPipe requires RGB color space
     image_rgb = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
     results = face_mesh.process(image_rgb)
-    
+
     # Default status payload
     status = {
         "head_pose": "Center",
         "suspicious": False,
-        "message": "Looking at screen"
+        "message": "Looking at screen",
     }
 
     # If no face is found in the frame at all
@@ -43,7 +44,7 @@ def analyze_frame(image_array):
             # Key landmarks: Nose tip, Chin, Left/Right Eye corners, Mouth corners
             if idx in [33, 263, 1, 61, 291, 199]:
                 x, y = int(lm.x * img_w), int(lm.y * img_h)
-                
+
                 # 2D image coordinates
                 face_2d.append([x, y])
                 # 3D spatial coordinates (Z is estimated by MediaPipe)
@@ -55,17 +56,19 @@ def analyze_frame(image_array):
 
         # Build the Camera Matrix (Intrinsic parameters)
         focal_length = 1 * img_w
-        cam_matrix = np.array([[focal_length, 0, img_h / 2],
-                               [0, focal_length, img_w / 2],
-                               [0, 0, 1]])
+        cam_matrix = np.array(
+            [[focal_length, 0, img_h / 2], [0, focal_length, img_w / 2], [0, 0, 1]]
+        )
         dist_matrix = np.zeros((4, 1), dtype=np.float64)
 
         # Solve PnP (Perspective-n-Point) to find head rotation
-        success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
-        
+        success, rot_vec, trans_vec = cv2.solvePnP(
+            face_3d, face_2d, cam_matrix, dist_matrix
+        )
+
         # Convert rotation vector to a rotation matrix
         rmat, _ = cv2.Rodrigues(rot_vec)
-        
+
         # Get the Euler angles (Pitch, Yaw, Roll)
         angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
 
