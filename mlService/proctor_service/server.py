@@ -1,3 +1,11 @@
+import sys
+import os
+from pydantic import BaseModel
+
+# Add the parent directory (mlService) to Python's path so it can find predictor.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from predictor import predict_student_placement
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import cv2
 import numpy as np
@@ -6,6 +14,16 @@ import json
 from proctor_engine import analyze_frame
 
 app = FastAPI()
+
+
+class StudentData(BaseModel):
+    CGPA: float
+    DSA_Score: int
+    WebDev_Score: int
+    Aptitude_Score: int
+    Comm_Skills: int
+    Internships: int
+    Projects: int
 
 
 @app.websocket("/ws/proctor")
@@ -41,3 +59,10 @@ async def proctor_endpoint(websocket: WebSocket):
         print("Client disconnected from proctoring session.")
     except Exception as e:
         print(f"Error: {e}")
+
+
+@app.post("/api/predict-placement")
+async def get_placement_prediction(data: StudentData):
+    # data.model_dump() converts the Pydantic model back to a standard Python dictionary
+    prediction_result = predict_student_placement(data.model_dump())
+    return prediction_result
