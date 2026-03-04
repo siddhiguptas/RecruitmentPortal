@@ -1,63 +1,60 @@
-import { Link } from "react-router-dom";
-import { useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useContext, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
+import { Menu, X, Moon, Sun } from "lucide-react";
 
 function Navbar() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout, theme, toggleTheme } = useContext(AuthContext);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
-    <nav style={styles.nav}>
-      <h2 style={styles.logo}>Recruitment Portal</h2>
+    <nav className="navbar">
+      <h2 className="logo">Recruitment Portal</h2>
 
-      <div>
-        <Link to="/" style={styles.link}>Home</Link>
-        <Link to="/jobs" style={styles.link}>Jobs</Link>
+      {/* Mobile Toggle */}
+      <div className="mobile-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+        {menuOpen ? <X size={24} /> : <Menu size={24} />}
+      </div>
+
+      <div className={`nav-links ${menuOpen ? "active" : ""}`}>
+        <Link to="/">Home</Link>
+        <Link to="/jobs">Jobs</Link>
 
         {!user ? (
           <>
-            <Link to="/login" style={styles.link}>Login</Link>
-            <Link to="/register" style={styles.link}>Register</Link>
+            <Link to="/login">Login</Link>
+            <Link to="/register">Register</Link>
           </>
         ) : (
           <>
             {user.role === "admin" && (
-              <Link to="/admin" style={styles.link}>Dashboard</Link>
+              <Link to="/admin">Dashboard</Link>
             )}
-            <button onClick={logout} style={styles.logoutBtn}>
+            {user.role === "student" && (
+              <Link to="/student">Dashboard</Link>
+            )}
+            {user.role === "recruiter" && (
+              <Link to="/recruiter">Dashboard</Link>
+            )}
+            <button onClick={handleLogout} className="logout-btn">
               Logout
             </button>
           </>
         )}
+
+        {/* Dark Mode Toggle */}
+        <button className="theme-btn" onClick={toggleTheme}>
+          {theme === "light" ? <Moon size={18}/> : <Sun size={18}/>}
+        </button>
       </div>
     </nav>
   );
 }
-
-const styles = {
-  nav: {
-    background: "linear-gradient(to right, #1e3a8a, #2563eb)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "15px 40px",
-    backgroundColor: "#1e3a8a",
-    color: "white",
-  },
-  logo: { margin: 0 },
-  link: {
-    marginLeft: "20px",
-    textDecoration: "none",
-    color: "white",
-    fontWeight: "500",
-  },
-  logoutBtn: {
-    marginLeft: "20px",
-    background: "red",
-    color: "white",
-    border: "none",
-    padding: "6px 10px",
-    cursor: "pointer",
-  }
-};
 
 export default Navbar;

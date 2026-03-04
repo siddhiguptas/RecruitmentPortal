@@ -12,7 +12,11 @@ function AuthProvider({ children }) {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+const [theme, setTheme] = useState("light");
 
+const toggleTheme = () => {
+  setTheme(prev => prev === "light" ? "dark" : "light");
+};
   const login = (email) => {
     // Simple role logic
     const role = email === "admin@nitkkr.ac.in" ? "admin" : "student";
@@ -28,7 +32,7 @@ function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, theme, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,3 @@
-import Apply from "./pages/Apply";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
@@ -10,15 +9,19 @@ import Home from "./pages/Home";
 import Jobs from "./pages/Jobs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Apply from "./pages/Apply";
 import AdminDashboard from "./pages/AdminDashboard";
-
+import StudentDashboard from "./pages/StudentDashboard";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
+import RecruiterDashboard from "./pages/RecruiterDashboard";
+import StudentDashboard from "./pages/StudentDashboard";
 import "./styles/global.css";
 
 function App() {
-  const { user } = useContext(AuthContext);
+  const { user, theme } = useContext(AuthContext);
 
   return (
-    <>
+    <div className={theme}>
       <Navbar />
 
       <Routes>
@@ -27,19 +30,41 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/apply" element={<Apply />} />
-        {/* Protected Route */}
+         <Route path="/recruiter" element={<RecruiterDashboard />} />
+<Route path="/student" element={<StudentDashboard />} />
+        {/* Admin Protected */}
         <Route
-  path="/admin"
-  element={
-    user && user.role === "admin"
-      ? <AdminDashboard />
-      : <Navigate to="/login" />
-  }
-/>
+          path="/admin/*"
+          element={
+            user?.role === "admin"
+              ? <AdminDashboard />
+              : <Navigate to="/login" />
+          }
+        />
+
+        {/* Student Protected */}
+        <Route
+          path="/student/*"
+          element={
+            user?.role === "student"
+              ? <StudentDashboard />
+              : <Navigate to="/login" />
+          }
+        />
+
+        {/* Recruiter Protected */}
+        <Route
+          path="/recruiter/*"
+          element={
+            user?.role === "recruiter"
+              ? <RecruiterDashboard />
+              : <Navigate to="/login" />
+          }
+        />
       </Routes>
 
       <Footer />
-    </>
+    </div>
   );
 }
 
