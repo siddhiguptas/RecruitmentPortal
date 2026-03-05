@@ -1,12 +1,24 @@
 function ProctoredTest() {
   return (
-    <div className="card">
-      <h3>AI Proctored Assessment</h3>
-      <div style={{ background: "#000", height: "250px", borderRadius: "8px" }}></div>
-      <br/>
-      <button className="btn-primary">Start Test</button>
+    <div>
+
+      <h2>Online Assessment</h2>
+
+      <p>Camera monitoring will be enabled during the test.</p>
+
+      <button style={styles.btn}>Start Test</button>
+
     </div>
   );
+}
+
+const styles = {
+btn:{
+background:"red",
+color:"white",
+padding:"10px 20px",
+border:"none"
+}
 }
 
 export default ProctoredTest;
