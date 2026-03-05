@@ -13,8 +13,7 @@ import Apply from "./pages/Apply";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
-import RecruiterDashboard from "./pages/RecruiterDashboard";
-import StudentDashboard from "./pages/StudentDashboard";
+
 import "./styles/global.css";
 
 function App() {
