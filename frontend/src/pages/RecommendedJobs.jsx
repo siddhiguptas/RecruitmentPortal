@@ -1,19 +1,28 @@
-function RecommendedJobs() {
-  return (
-    <div>
-      <div className="card">
-        <h4>Frontend Developer - Google</h4>
-        <p>Location: Bangalore</p>
-        <button className="btn-primary">Apply</button>
-      </div>
+import JobCard from "../components/JobCard";
 
-      <div className="card">
-        <h4>Backend Developer - Microsoft</h4>
-        <p>Location: Hyderabad</p>
-        <button className="btn-primary">Apply</button>
-      </div>
-    </div>
-  );
+function RecommendedJobs() {
+
+const jobs = [
+{title:"Software Engineer",company:"Google",location:"Bangalore"},
+{title:"Backend Developer",company:"Amazon",location:"Hyderabad"},
+{title:"Frontend Developer",company:"Microsoft",location:"Noida"}
+]
+
+return (
+<div>
+
+<h2>Recommended Jobs</h2>
+
+<div style={{display:"flex",gap:"20px"}}>
+
+{jobs.map((job,index)=>(
+<JobCard key={index} {...job}/>
+))}
+
+</div>
+
+</div>
+)
 }
 
 export default RecommendedJobs;

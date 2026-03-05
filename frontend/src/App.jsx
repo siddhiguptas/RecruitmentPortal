@@ -13,7 +13,7 @@ import Apply from "./pages/Apply";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
-
+import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import "./styles/global.css";
 
 function App() {
@@ -31,6 +31,7 @@ function App() {
         <Route path="/apply" element={<Apply />} />
          <Route path="/recruiter" element={<RecruiterDashboard />} />
 <Route path="/student" element={<StudentDashboard />} />
+<Route path="/analytics" element={<PredictiveAnalytics/>}/>
         {/* Admin Protected */}
         <Route
           path="/admin/*"
