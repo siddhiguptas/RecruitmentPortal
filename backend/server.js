@@ -1,5 +1,6 @@
 const express = require('express');
 const { triggerNotification } = require('./controllers/notificationController');
+const atsController = require('./controllers/atsController');
 require('dotenv').config();
 
 const app = express();
