@@ -1,6 +1,6 @@
 const atsService = require("../services/atsService");
 
-// student applies for job
+
 exports.applyJob = async (req, res) => {
   try {
     const result = await atsService.applyJob(req.body);
@@ -11,7 +11,7 @@ exports.applyJob = async (req, res) => {
 };
 
 
-// recruiter ATS pipeline
+
 exports.getPipeline = async (req, res) => {
   try {
     const data = await atsService.getPipeline();
@@ -22,7 +22,7 @@ exports.getPipeline = async (req, res) => {
 };
 
 
-// recruiter changes stage
+
 exports.updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
