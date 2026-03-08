@@ -1,20 +1,34 @@
-import { Routes, Route } from "react-router-dom";
-import ResumeUpload from "./ResumeUpload";
-import RecommendedJobs from "./RecommendedJobs";
-import ProctoredTest from "./ProctoredTest";
-import DashboardLayout from "../components/layout/DashboardLayout";
+import { Routes,Route } from "react-router-dom"
+import Sidebar from "../components/Sidebar"
 
-function StudentDashboard() {
-  return (
-    <DashboardLayout role="student">
-      <Routes>
-        <Route path="/" element={<h1>Welcome Student 👩‍💻</h1>} />
-        <Route path="resume" element={<ResumeUpload />} />
-        <Route path="recommended" element={<RecommendedJobs />} />
-        <Route path="test" element={<ProctoredTest />} />
-      </Routes>
-    </DashboardLayout>
-  );
+import ResumeUpload from "./ResumeUpload"
+import RecommendedJobs from "./RecommendedJobs"
+import ProctoredTest from "./ProctoredTest"
+
+function StudentDashboard(){
+
+return(
+
+<div className="dashboard">
+
+<Sidebar role="student"/>
+
+<div className="content">
+
+<Routes>
+
+<Route path="resume" element={<ResumeUpload/>}/>
+<Route path="recommended" element={<RecommendedJobs/>}/>
+<Route path="test" element={<ProctoredTest/>}/>
+
+</Routes>
+
+</div>
+
+</div>
+
+)
+
 }
 
-export default StudentDashboard;
+export default StudentDashboard

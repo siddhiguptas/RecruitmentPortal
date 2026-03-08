@@ -1,57 +1,75 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-function Register() {
+function Register(){
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: ""
-  });
+const navigate=useNavigate()
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+const [form,setForm]=useState({
+name:"",
+email:"",
+password:"",
+role:"student",
+branch:"",
+adminCode:""
+})
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.email || !formData.password) {
-      alert("All fields required!");
-      return;
-    }
-
-    alert("Registration Successful!");
-  };
-
-  return (
-    <div className="form-container">
-      <h2>Register</h2>
-
-      <form onSubmit={handleSubmit}>
-        <input
-          name="name"
-          placeholder="Full Name"
-          onChange={handleChange}
-        />
-
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          onChange={handleChange}
-        />
-
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          onChange={handleChange}
-        />
-
-        <button type="submit">Register</button>
-      </form>
-    </div>
-  );
+const handleChange=(e)=>{
+setForm({...form,[e.target.name]:e.target.value})
 }
 
-export default Register;
+const handleSubmit=async(e)=>{
+e.preventDefault()
+
+const res=await fetch("http://localhost:5000/api/auth/register",{
+method:"POST",
+headers:{ "Content-Type":"application/json"},
+body:JSON.stringify(form)
+})
+
+const data=await res.json()
+
+if(res.ok){
+alert("Registered Successfully")
+navigate("/login")
+}else{
+alert(data.message)
+}
+
+}
+
+return(
+
+<div className="auth-container">
+
+<h2>Register</h2>
+
+<form onSubmit={handleSubmit}>
+
+<input name="name" placeholder="Name" onChange={handleChange}/>
+<input name="email" placeholder="Email" onChange={handleChange}/>
+<input type="password" name="password" placeholder="Password" onChange={handleChange}/>
+
+<select name="role" onChange={handleChange}>
+<option value="student">Student</option>
+<option value="recruiter">Recruiter</option>
+<option value="admin">Admin</option>
+</select>
+
+<input name="branch" placeholder="Branch" onChange={handleChange}/>
+
+{form.role==="admin" && (
+<input name="adminCode" placeholder="Admin Code" onChange={handleChange}/>
+)}
+
+<button>Register</button>
+
+</form>
+
+</div>
+
+)
+
+}
+
+export default Register
