@@ -1,34 +1,34 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { 
-  Upload, 
-  FileText, 
-  CheckCircle2, 
-  Clock, 
-  Briefcase, 
-  MapPin, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Upload,
+  FileText,
+  CheckCircle2,
+  Briefcase,
   AlertCircle,
   Loader2,
   ChevronRight,
-  Search
+  User,
+  Calendar,
+  Target
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { studentService } from "../services/studentService";
-import { Job, Application, StudentProfile } from "../types";
+import { StudentProfile } from "../types";
 import { Button } from "../components/Button";
-import { cn, formatDate } from "../utils";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [stats, setStats] = useState({
+    totalApplications: 0,
+    recommendedJobs: 0,
+    upcomingTests: 0,
+    profileCompleteness: 0
+  });
   const [error, setError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -37,14 +37,19 @@ const StudentDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [jobsData, appsData, profileData] = await Promise.all([
+      const [profileData, jobsData, appsData] = await Promise.all([
+        studentService.getProfile().catch(() => null),
         studentService.getRecommendedJobs().catch(() => []),
-        studentService.getMyApplications().catch(() => []),
-        studentService.getProfile().catch(() => null)
+        studentService.getMyApplications().catch(() => [])
       ]);
-      setJobs(jobsData);
-      setApplications(appsData);
+
       setProfile(profileData);
+      setStats({
+        totalApplications: appsData.length,
+        recommendedJobs: jobsData.length,
+        upcomingTests: 0, // TODO: Implement when tests are available
+        profileCompleteness: calculateProfileCompleteness(profileData)
+      });
     } catch (err: any) {
       setError("Failed to load dashboard data");
       console.error(err);
@@ -53,9 +58,37 @@ const StudentDashboard = () => {
     }
   };
 
+  const calculateProfileCompleteness = (profile: StudentProfile | null): number => {
+    if (!profile) return 0;
+
+    let completeness = 0;
+    const fields = ['fullName', 'phone', 'college', 'branch', 'graduationYear'];
+    const totalFields = fields.length + 1; // +1 for resume
+
+    fields.forEach(field => {
+      if (profile[field as keyof StudentProfile]) completeness++;
+    });
+
+    if (profile.resumePath) completeness++;
+
+    return Math.round((completeness / totalFields) * 100);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      setError('Only PDF files are allowed');
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
 
     const formData = new FormData();
     formData.append("resume", file);
@@ -65,35 +98,16 @@ const StudentDashboard = () => {
     try {
       const response = await studentService.uploadResume(formData);
       setProfile(response.profile);
-      // Refresh jobs as profile changed
-      const updatedJobs = await studentService.getRecommendedJobs();
-      setJobs(updatedJobs);
+      setStats(prev => ({
+        ...prev,
+        profileCompleteness: calculateProfileCompleteness(response.profile)
+      }));
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to upload resume");
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleApply = async (jobId: string) => {
-    try {
-      await studentService.applyToJob(jobId);
-      // Refresh applications
-      const updatedApps = await studentService.getMyApplications();
-      setApplications(updatedApps);
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to apply for job");
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "applied": return "bg-blue-50 text-blue-700 border-blue-100";
-      case "shortlisted": return "bg-amber-50 text-amber-700 border-amber-100";
-      case "interviewing": return "bg-purple-50 text-purple-700 border-purple-100";
-      case "offered": return "bg-emerald-50 text-emerald-700 border-emerald-100";
-      case "rejected": return "bg-rose-50 text-rose-700 border-rose-100";
-      default: return "bg-slate-50 text-slate-700 border-slate-100";
+      // Reset file input
+      e.target.value = '';
     }
   };
 
@@ -112,23 +126,23 @@ const StudentDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Student Dashboard</h1>
-          <p className="text-slate-500 mt-1">Manage your career and applications in one place.</p>
+          <p className="text-slate-500 mt-1">Welcome back! Here's your career overview.</p>
         </div>
         <div className="flex items-center gap-3">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
-            accept=".pdf,.doc,.docx"
+          <input
+            type="file"
+            onChange={handleFileUpload}
+            className="hidden"
+            accept=".pdf"
+            id="resume-upload"
           />
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
+          <Button
+            onClick={() => document.getElementById('resume-upload')?.click()}
             isLoading={uploading}
             className="gap-2"
           >
             <Upload size={18} />
-            {profile?.resumeUrl ? "Update Resume" : "Upload Resume"}
+            {profile?.resumePath ? "Update Resume" : "Upload Resume"}
           </Button>
         </div>
       </div>
@@ -140,200 +154,220 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Content - Jobs */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all"
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">Recommended for You</h2>
-            <button className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              View All <ChevronRight size={16} />
-            </button>
+            <div>
+              <p className="text-sm font-medium text-slate-500">Applications</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.totalApplications}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+              <FileText className="text-blue-600 w-6 h-6" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Recommended Jobs</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.recommendedJobs}</p>
+            </div>
+            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
+              <Briefcase className="text-emerald-600 w-6 h-6" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Profile Complete</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.profileCompleteness}%</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+              <User className="text-purple-600 w-6 h-6" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-lg transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Upcoming Tests</p>
+              <p className="text-3xl font-bold text-slate-900">{stats.upcomingTests}</p>
+            </div>
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+              <Calendar className="text-amber-600 w-6 h-6" />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Profile Status */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-900">Profile Status</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/student/profile')}
+              className="gap-2"
+            >
+              <User size={16} />
+              Complete Profile
+            </Button>
           </div>
 
-          {jobs.length > 0 ? (
-            <div className="grid gap-4">
-              {jobs.map((job) => (
-                <motion.div
-                  key={job._id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-50 transition-colors">
-                        <Briefcase className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">{job.title}</h3>
-                        <p className="text-sm text-slate-500 font-medium">{job.company}</p>
-                        <div className="flex flex-wrap items-center gap-4 mt-3">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <MapPin size={14} />
-                            {job.location}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <DollarSign size={14} />
-                            {job.salary}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <Clock size={14} />
-                            {job.jobType}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-3">
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100">
-                        <TrendingUp size={14} />
-                        95% Match
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleApply(job._id)}
-                        disabled={applications.some(app => (typeof app.job === 'string' ? app.job : app.job._id) === job._id)}
-                      >
-                        {applications.some(app => (typeof app.job === 'string' ? app.job : app.job._id) === job._id) ? "Applied" : "Apply Now"}
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="text-slate-300 w-8 h-8" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">No recommendations yet</h3>
-              <p className="text-slate-500 max-w-xs mx-auto mb-6">Upload your resume to get personalized job recommendations based on your skills.</p>
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                Upload Resume
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar - Applications & Profile */}
-        <div className="space-y-8">
-          {/* Application Status */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900">My Applications</h3>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {applications.length > 0 ? (
-                applications.map((app) => (
-                  <div key={app._id} className="p-6 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-bold text-slate-900 truncate pr-2">
-                        {typeof app.job === 'string' ? 'Job Application' : app.job.title}
-                      </p>
-                      <span className={cn(
-                        "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                        getStatusColor(app.status)
-                      )}>
-                        {app.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <p>{typeof app.job === 'string' ? '' : app.job.company}</p>
-                      <p>{formatDate(app.createdAt)}</p>
-                    </div>
-                    
-                    {/* Pipeline Visualization */}
-                    <div className="mt-4 flex items-center gap-1">
-                      {["applied", "shortlisted", "interviewing", "offered"].map((step, idx) => {
-                        const steps = ["applied", "shortlisted", "interviewing", "offered"];
-                        const currentIdx = steps.indexOf(app.status);
-                        const isCompleted = idx <= currentIdx;
-                        const isCurrent = idx === currentIdx;
-
-                        return (
-                          <div key={step} className="flex-1 flex items-center gap-1">
-                            <div 
-                              className={cn(
-                                "h-1.5 flex-1 rounded-full transition-all duration-500",
-                                isCompleted ? "bg-emerald-500" : "bg-slate-100",
-                                isCurrent && "animate-pulse"
-                              )} 
-                            />
-                            {idx < 3 && <div className="w-1 h-1 rounded-full bg-slate-200" />}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-600">Resume</span>
+              {profile?.resumePath ? (
+                <CheckCircle2 className="text-emerald-600 w-5 h-5" />
               ) : (
-                <div className="p-12 text-center">
-                  <p className="text-sm text-slate-400">No applications yet.</p>
-                </div>
+                <AlertCircle className="text-amber-600 w-5 h-5" />
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-600">Personal Info</span>
+              {profile?.fullName && profile?.phone ? (
+                <CheckCircle2 className="text-emerald-600 w-5 h-5" />
+              ) : (
+                <AlertCircle className="text-amber-600 w-5 h-5" />
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-600">Education</span>
+              {profile?.college && profile?.branch ? (
+                <CheckCircle2 className="text-emerald-600 w-5 h-5" />
+              ) : (
+                <AlertCircle className="text-amber-600 w-5 h-5" />
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-600">Skills</span>
+              {profile?.skills && profile.skills.length > 0 ? (
+                <CheckCircle2 className="text-emerald-600 w-5 h-5" />
+              ) : (
+                <AlertCircle className="text-amber-600 w-5 h-5" />
               )}
             </div>
           </div>
+        </motion.div>
 
-          {/* Profile Summary */}
-          {profile && (
-            <div className="bg-emerald-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-xl shadow-emerald-200">
-              <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-              <div className="relative z-10">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                  <FileText size={18} />
-                  Profile Strength
-                </h3>
-                <div className="flex items-end gap-2 mb-6">
-                  <span className="text-4xl font-bold">85%</span>
-                  <span className="text-emerald-100 text-sm mb-1">Complete</span>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 size={16} className="text-emerald-300" />
-                    <span>Resume Uploaded</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <CheckCircle2 size={16} className="text-emerald-300" />
-                    <span>Skills Extracted</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm opacity-60">
-                    <div className="w-4 h-4 rounded-full border border-white/40" />
-                    <span>Complete Assessments</span>
-                  </div>
-                </div>
-                <Button variant="secondary" className="w-full mt-6 bg-white text-emerald-600 hover:bg-emerald-50 border-none">
-                  Complete Profile
-                </Button>
+        {/* Quick Links */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white p-6 rounded-2xl border border-slate-200"
+        >
+          <h3 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/student/jobs')}
+            >
+              <Briefcase size={18} />
+              <div className="text-left">
+                <div className="font-medium">Browse Jobs</div>
+                <div className="text-xs text-slate-500">View recommended opportunities</div>
               </div>
+              <ChevronRight size={16} className="ml-auto" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/student/applications')}
+            >
+              <FileText size={18} />
+              <div className="text-left">
+                <div className="font-medium">My Applications</div>
+                <div className="text-xs text-slate-500">Track your application status</div>
+              </div>
+              <ChevronRight size={16} className="ml-auto" />
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-3 h-12"
+              onClick={() => navigate('/student/profile')}
+            >
+              <User size={18} />
+              <div className="text-left">
+                <div className="font-medium">Update Profile</div>
+                <div className="text-xs text-slate-500">Keep your information current</div>
+              </div>
+              <ChevronRight size={16} className="ml-auto" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Recent Activity */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="bg-white p-6 rounded-2xl border border-slate-200"
+      >
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Recent Activity</h3>
+        <div className="space-y-4">
+          {stats.totalApplications > 0 ? (
+            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+                <FileText className="text-blue-600 w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-slate-900">Application Submitted</p>
+                <p className="text-sm text-slate-500">You have {stats.totalApplications} active applications</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/student/applications')}
+              >
+                View
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Target className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">No recent activity</p>
+              <p className="text-slate-400 text-sm">Start by uploading your resume and browsing jobs</p>
             </div>
           )}
-
-          {/* Upcoming Tests */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900">Upcoming Tests</h3>
-              <span className="bg-rose-50 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-full border border-rose-100">
-                Live
-              </span>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="text-sm font-bold text-slate-900 mb-1">Frontend Engineering Assessment</p>
-                <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                  <span>30 Minutes</span>
-                  <span>5 Questions</span>
-                </div>
-                <Button 
-                  size="sm" 
-                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700"
-                  onClick={() => navigate("/student/test/test-1")}
-                >
-                  Start Test
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

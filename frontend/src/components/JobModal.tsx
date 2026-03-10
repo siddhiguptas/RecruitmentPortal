@@ -29,7 +29,7 @@ export const JobModal: React.FC<JobModalProps> = ({ isOpen, onClose, onSubmit, i
         title: initialData.title,
         company: initialData.company,
         location: initialData.location,
-        salary: initialData.salary,
+        salary: initialData.salary || "",
         jobType: initialData.jobType,
         description: initialData.description,
         requirements: initialData.requirements.join(", "),
