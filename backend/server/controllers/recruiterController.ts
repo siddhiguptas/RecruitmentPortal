@@ -7,7 +7,6 @@ import { User } from "../models/User";
 import { StudentProfile } from "../models/StudentProfile";
 import { NotificationService } from "../services/notificationService";
 import { mlService } from "../services/mlService";
-import { createNotification } from "./notificationController";
 import { AuthRequest } from "../types";
 
 export const postJob = async (req: AuthRequest, res: Response) => {
@@ -116,15 +115,6 @@ export const updateApplicationStatus = async (req: AuthRequest, res: Response) =
         if (subject) {
           await NotificationService.sendInstantUpdate(student.email, subject, message);
         }
-
-        // Create in-app notification
-        await createNotification(
-          student._id,
-          `Application ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-          `Your application for ${job.title} at ${companyName} has been ${status}.`,
-          "status_update",
-          applicationId
-        );
       } catch (notifyError) {
         console.error("Failed to send status update notification:", notifyError);
       }

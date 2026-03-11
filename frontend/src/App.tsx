@@ -9,9 +9,6 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import StudentDashboard from "./pages/StudentDashboard";
-import StudentProfile from "./pages/StudentProfile";
-import StudentApplications from "./pages/StudentApplications";
-import StudentRecommendedJobs from "./pages/StudentRecommendedJobs";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import OnlineTest from "./pages/OnlineTest";
@@ -38,7 +35,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <DashboardLayout>{children}</DashboardLayout>;
 };
 
 export default function App() {
@@ -52,54 +49,54 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
 
           {/* Student Routes */}
-          <Route
-            path="/student/*"
+          <Route 
+            path="/student/*" 
             element={
               <ProtectedRoute allowedRoles={["student"]}>
-                <DashboardLayout />
+                <Routes>
+                  <Route path="dashboard" element={<StudentDashboard />} />
+                  <Route path="profile" element={<div className="p-8"><h1 className="text-2xl font-bold">Student Profile</h1></div>} />
+                  <Route path="jobs" element={<div className="p-8"><h1 className="text-2xl font-bold">Recommended Jobs</h1></div>} />
+                  <Route path="applications" element={<div className="p-8"><h1 className="text-2xl font-bold">My Applications</h1></div>} />
+                  <Route path="tests" element={<div className="p-8"><h1 className="text-2xl font-bold">Online Tests</h1></div>} />
+                  <Route path="test/:testId" element={<OnlineTest />} />
+                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                </Routes>
               </ProtectedRoute>
-            }
-          >
-            <Route path="dashboard" element={<StudentDashboard />} />
-            <Route path="profile" element={<StudentProfile />} />
-            <Route path="jobs" element={<StudentRecommendedJobs />} />
-            <Route path="applications" element={<StudentApplications />} />
-            <Route path="tests" element={<div className="p-8"><h1 className="text-2xl font-bold">Online Tests</h1></div>} />
-            <Route path="test/:testId" element={<OnlineTest />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Route>
+            } 
+          />
 
           {/* Recruiter Routes */}
-          <Route
-            path="/recruiter/*"
+          <Route 
+            path="/recruiter/*" 
             element={
               <ProtectedRoute allowedRoles={["recruiter"]}>
-                <DashboardLayout />
+                <Routes>
+                  <Route path="dashboard" element={<RecruiterDashboard />} />
+                  <Route path="post-job" element={<div className="p-8"><h1 className="text-2xl font-bold">Post a Job</h1></div>} />
+                  <Route path="applicants" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Applicants</h1></div>} />
+                  <Route path="interviews" element={<div className="p-8"><h1 className="text-2xl font-bold">Interviews</h1></div>} />
+                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                </Routes>
               </ProtectedRoute>
-            }
-          >
-            <Route path="dashboard" element={<RecruiterDashboard />} />
-            <Route path="post-job" element={<div className="p-8"><h1 className="text-2xl font-bold">Post a Job</h1></div>} />
-            <Route path="applicants" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Applicants</h1></div>} />
-            <Route path="interviews" element={<div className="p-8"><h1 className="text-2xl font-bold">Interviews</h1></div>} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Route>
+            } 
+          />
 
           {/* Admin Routes */}
-          <Route
-            path="/admin/*"
+          <Route 
+            path="/admin/*" 
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
-                <DashboardLayout />
+                <Routes>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="students" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Students</h1></div>} />
+                  <Route path="recruiters" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Recruiters</h1></div>} />
+                  <Route path="analytics" element={<div className="p-8"><h1 className="text-2xl font-bold">Platform Analytics</h1></div>} />
+                  <Route path="*" element={<Navigate to="dashboard" replace />} />
+                </Routes>
               </ProtectedRoute>
-            }
-          >
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="students" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Students</h1></div>} />
-            <Route path="recruiters" element={<div className="p-8"><h1 className="text-2xl font-bold">Manage Recruiters</h1></div>} />
-            <Route path="analytics" element={<div className="p-8"><h1 className="text-2xl font-bold">Platform Analytics</h1></div>} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Route>
+            } 
+          />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

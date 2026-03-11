@@ -26,18 +26,10 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req: any, file: any, cb: any) => {
-    const filetypes = /pdf/;
+    const filetypes = /pdf|doc|docx/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = file.mimetype === 'application/pdf';
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Only PDF files are allowed") as any, false);
-    }
-  },
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    if (extname) return cb(null, true);
+    cb(new Error("Only PDF and Word documents are allowed") as any, false);
   },
 });
 

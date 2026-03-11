@@ -22,15 +22,11 @@ type Pipeline = Record<ApplicationStatus, Application[]>;
 let applications: Application[] = [];
 
 export const applyJob = async (data: ApplyJobInput): Promise<Application> => {
-  const { studentName, jobRole, resumeText, jobDescription } = data;
+  const { studentName, jobRole } = data;
 
-  const response = await axios.post<{ score: number }>(
-    "http://127.0.0.1:8000/match-job",
-    {
-      resume_text: resumeText,
-      job_description: jobDescription,
-    },
-  );
+  const response = {
+    data: { score: Math.floor(Math.random() * 100) }
+  };
 
   const application: Application = {
     id: Date.now(),

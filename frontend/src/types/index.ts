@@ -13,19 +13,13 @@ export interface User {
 }
 
 export interface StudentProfile {
-  _id?: string;
+  _id: string;
   user: string | User;
-  fullName?: string;
-  phone?: string;
-  college?: string;
-  branch?: string;
-  graduationYear?: number;
-  skills: string[];
-  resumePath?: string;
   resumeUrl?: string;
-  experience?: string;
-  education?: string;
-  summary?: string;
+  skills: string[];
+  experience: string;
+  education: string;
+  summary: string;
   placementProbability?: number;
   eligibilityStatus?: "pending" | "eligible" | "ineligible";
 }
@@ -36,25 +30,11 @@ export interface Job {
   description: string;
   company: string;
   location: string;
-  salary?: string;
+  salary: string;
   jobType: string;
   requirements: string[];
-  skillsRequired?: string[];
-  experienceRequired?: string;
   postedBy: string | User;
   createdAt: string;
-  deadline?: string;
-  isActive?: boolean;
-  minimumCgpa?: number;
-  minimumTenthPercentage?: number;
-  minimumTwelfthPercentage?: number;
-  requiredBranches?: string[];
-  maximumBacklogs?: number;
-  requiredCertifications?: string[];
-  department?: string;
-  workMode?: string;
-  applicationFee?: number;
-  selectionProcess?: string[];
 }
 
 export interface Analytics {

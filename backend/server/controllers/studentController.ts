@@ -43,7 +43,6 @@ export const uploadResume = async (req: AuthRequest, res: Response) => {
       { user: req.user._id },
       {
         resumeUrl: req.file.path,
-        resumePath: req.file.path, // Store the same path for consistency
         parsedResumeData: parsedData,
         skills: parsedData.skills || [],
       },

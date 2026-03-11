@@ -1,5 +1,0 @@
-@import "tailwindcss";
-
-.mirror {
-  transform: scaleX(-1);
-}

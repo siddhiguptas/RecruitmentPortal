@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   LayoutDashboard, 
@@ -22,7 +22,6 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { cn } from "../utils";
 import { Button } from "./Button";
-import { studentService } from "../services/studentService";
 
 interface NavItem {
   label: string;
@@ -30,30 +29,13 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const DashboardLayout: React.FC = () => {
+const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (user?.role === 'student') {
-      fetchNotifications();
-    }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    try {
-      const data = await studentService.getNotifications();
-      setNotifications(data);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    }
-  };
 
   const getNavItems = (): NavItem[] => {
     if (!user) return [];
@@ -236,55 +218,10 @@ const DashboardLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button 
-              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-              className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg relative transition-colors"
-            >
+            <button className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg relative transition-colors">
               <Bell size={20} />
-              {notifications.filter(n => !n.isRead).length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-              )}
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
             </button>
-
-            <AnimatePresence>
-              {isNotificationOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsNotificationOpen(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-16 top-16 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-20 max-h-96 overflow-y-auto"
-                  >
-                    <div className="p-4 border-b border-slate-100">
-                      <h3 className="font-bold text-slate-900">Notifications</h3>
-                    </div>
-                    <div className="divide-y divide-slate-50">
-                      {notifications.length > 0 ? (
-                        notifications.map((notification) => (
-                          <div key={notification._id} className="p-4 hover:bg-slate-50 transition-colors">
-                            <div className="flex items-start gap-3">
-                              <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 mt-2" />
-                              <div className="flex-1">
-                                <p className="text-sm font-bold text-slate-900">{notification.title}</p>
-                                <p className="text-sm text-slate-600 mt-1">{notification.message}</p>
-                                <p className="text-xs text-slate-400 mt-2">
-                                  {new Date(notification.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-8 text-center">
-                          <p className="text-sm text-slate-400">No notifications yet</p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
             
             <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block" />
 
@@ -344,7 +281,7 @@ const DashboardLayout: React.FC = () => {
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
-            <Outlet />
+            {children}
           </div>
         </main>
       </div>

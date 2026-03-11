@@ -1,3 +1,4 @@
+import mlRoutes from "./server/routes/mlRoutes"; // adjust path if needed
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -92,10 +93,14 @@ async function startServer() {
   app.use("/api/recruiters", recruiterRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/notifications", notificationRoutes);
-  app.post("/api/notify", triggerNotification);
+  
   app.post("/api/apply-job", applyJobHandler);
   app.get("/api/ats-pipeline", getPipelineHandler);
   app.put("/api/update-status/:id", updateStatusHandler);
+  
+
+// 3️⃣ Register ML routes
+app.use("/api/ml", mlRoutes);
 
   app.get("/api/health", (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";

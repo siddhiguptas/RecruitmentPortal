@@ -24,7 +24,6 @@ const studentProfileSchema = new mongoose.Schema(
       },
     ],
     resumeUrl: { type: String },
-    resumePath: { type: String }, // Relative path for serving files
     parsedResumeData: { type: Object }, // Data from ML service
     placementProbability: { type: Number }, // From ML service
     eligibilityStatus: { type: Boolean, default: true },
