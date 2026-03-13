@@ -35,9 +35,34 @@ export const getApplicants = async (req: AuthRequest, res: Response) => {
 
   try {
     const applications = await Application.find({ job: jobId })
-      .populate("student", "name email")
+      .populate("student", "name email college branch skills")
       .sort("-matchScore");
     res.json(applications);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// fetch all applications across recruiter’s jobs (allows client-side filtering)
+export const getAllApplications = async (req: AuthRequest, res: Response) => {
+  try {
+    // find jobs belonging to this recruiter
+    const jobs = await Job.find({ recruiter: req.user._id }).select("_id title");
+    const jobIds = jobs.map((j) => j._id);
+
+    const applications = await Application.find({ job: { $in: jobIds } })
+      .populate("student", "name email college branch skills")
+      .populate("job", "title")
+      .sort("-createdAt");
+
+    // attach job title at top level for convenience
+    const appsWithTitle = applications.map((app) => {
+      const doc = app.toObject();
+      (doc as any).jobTitle = (app.job as any)?.title || "";
+      return doc;
+    });
+
+    res.json(appsWithTitle);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
