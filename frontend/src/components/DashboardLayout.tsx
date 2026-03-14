@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   LayoutDashboard, 
@@ -9,7 +9,6 @@ import {
   ClipboardCheck, 
   PlusSquare, 
   Users, 
-  UserCheck, 
   BarChart3, 
   LogOut, 
   Bell, 
@@ -29,7 +28,11 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface DashboardLayoutProps {
+  children?: React.ReactNode;
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -53,14 +56,18 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         return [
           { label: "Dashboard", href: "/recruiter/dashboard", icon: <LayoutDashboard size={20} /> },
           { label: "Post Job", href: "/recruiter/post-job", icon: <PlusSquare size={20} /> },
-          { label: "Applicants", href: "/recruiter/applicants", icon: <Users size={20} /> },
-          { label: "Interviews", href: "/recruiter/interviews", icon: <UserCheck size={20} /> },
+          { label: "Jobs", href: "/recruiter/jobs", icon: <Briefcase size={20} /> },
+          { label: "Applications", href: "/recruiter/applications", icon: <FileCheck size={20} /> },
+          { label: "Tests", href: "/recruiter/tests", icon: <ClipboardCheck size={20} /> },
+          { label: "Profile", href: "/recruiter/profile", icon: <UserCircle size={20} /> },
         ];
       case "admin":
         return [
           { label: "Dashboard", href: "/admin/dashboard", icon: <LayoutDashboard size={20} /> },
           { label: "Students", href: "/admin/students", icon: <Users size={20} /> },
           { label: "Recruiters", href: "/admin/recruiters", icon: <Briefcase size={20} /> },
+          { label: "Jobs", href: "/admin/jobs", icon: <ClipboardCheck size={20} /> },
+          { label: "Tests", href: "/admin/tests", icon: <ClipboardCheck size={20} /> },
           { label: "Analytics", href: "/admin/analytics", icon: <BarChart3 size={20} /> },
         ];
       default:
@@ -281,7 +288,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto">
-            {children}
+            {/* if component is used within a route this will render nested routes, otherwise render passed children */}
+            {children ? children : <Outlet />}
           </div>
         </main>
       </div>

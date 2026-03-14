@@ -37,12 +37,12 @@ export const studentService = {
   },
 
   getAvailableTests: async (): Promise<any[]> => {
-    const response = await api.get("/students/tests");
+    const response = await api.get("/tests");
     return response.data;
   },
 
   getTestDetails: async (testId: string): Promise<any> => {
-    const response = await api.get(`/students/tests/${testId}`);
+    const response = await api.get(`/tests/${testId}`);
     return response.data;
   },
 

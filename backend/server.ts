@@ -13,6 +13,7 @@ import studentRoutes from "./server/routes/studentRoutes";
 import recruiterRoutes from "./server/routes/recruiterRoutes";
 import adminRoutes from "./server/routes/adminRoutes";
 import notificationRoutes from "./server/routes/notificationRoutes";
+import testRoutes from "./server/routes/testRoutes";
 import { initProctorSocket } from "./server/services/proctorSocket";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -93,7 +94,8 @@ async function startServer() {
   app.use("/api/recruiters", recruiterRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/notifications", notificationRoutes);
-  
+  app.use("/api/tests", testRoutes);
+  app.post("/api/notify", triggerNotification);
   app.post("/api/apply-job", applyJobHandler);
   app.get("/api/ats-pipeline", getPipelineHandler);
   app.put("/api/update-status/:id", updateStatusHandler);

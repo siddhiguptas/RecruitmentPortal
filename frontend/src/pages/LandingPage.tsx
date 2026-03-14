@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import DashboardPreview from "../components/DashboardPreview";
 
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -146,13 +147,8 @@ const LandingPage = () => {
             className="mt-20 relative max-w-5xl mx-auto"
           >
             <div className="absolute -inset-4 bg-emerald-500/5 rounded-[2rem] blur-3xl" />
-            <div className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden aspect-video flex items-center justify-center bg-gradient-to-br from-slate-50 to-white">
-              <div className="flex flex-col items-center gap-4 text-slate-400">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Briefcase className="w-8 h-8" />
-                </div>
-                <p className="font-medium">Dashboard Preview</p>
-              </div>
+            <div className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+              <DashboardPreview />
             </div>
           </motion.div>
         </div>

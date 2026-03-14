@@ -13,13 +13,19 @@ export interface User {
 }
 
 export interface StudentProfile {
-  _id: string;
+  _id?: string;
   user: string | User;
-  resumeUrl?: string;
+  fullName?: string;
+  phone?: string;
+  college?: string;
+  branch?: string;
+  graduationYear?: number;
   skills: string[];
-  experience: string;
-  education: string;
-  summary: string;
+  resumePath?: string;
+  resumeUrl?: string;
+  experience?: string;
+  education?: string;
+  summary?: string;
   placementProbability?: number;
   eligibilityStatus?: "pending" | "eligible" | "ineligible";
 }
@@ -30,11 +36,41 @@ export interface Job {
   description: string;
   company: string;
   location: string;
-  salary: string;
+  salary?: string;
   jobType: string;
   requirements: string[];
+  skillsRequired?: string[];
+  experienceRequired?: string;
   postedBy: string | User;
   createdAt: string;
+  deadline?: string;
+  isActive?: boolean;
+  minimumCgpa?: number;
+  minimumTenthPercentage?: number;
+  minimumTwelfthPercentage?: number;
+  requiredBranches?: string[];
+  maximumBacklogs?: number;
+  requiredCertifications?: string[];
+  department?: string;
+  workMode?: string;
+  applicationFee?: number;
+  selectionProcess?: string[];
+  applicationsCount?: number;
+}
+
+export interface Recruiter {
+  _id: string;
+  name: string;
+  email: string;
+  company: string;
+  phone?: string;
+  website?: string;
+  companySize?: string;
+  industry?: string;
+  companyDescription?: string;
+  verificationStatus?: "pending" | "approved" | "rejected";
+  jobsPostedCount?: number;
+  registeredAt?: string;
 }
 
 export interface Analytics {
