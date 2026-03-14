@@ -22,11 +22,26 @@ type Pipeline = Record<ApplicationStatus, Application[]>;
 let applications: Application[] = [];
 
 export const applyJob = async (data: ApplyJobInput): Promise<Application> => {
-  const { studentName, jobRole } = data;
+  const { studentName, jobRole, resumeText, jobDescription } = data;
 
-  const response = {
-    data: { score: Math.floor(Math.random() * 100) }
-  };
+  // STEP 1: parse resume
+  const parsed = await axios.post(
+    "http://127.0.0.1:8000/parse-resume",
+    { text: resumeText }
+  );
+
+  const resumeData = parsed.data;
+
+  // STEP 2: job matching
+  const response = await axios.post(
+    "http://127.0.0.1:8000/match-job",
+    {
+      skills: resumeData.skills,
+      job_description: jobDescription,
+      experience_years: resumeData.experience_years || 0,
+      cgpa: resumeData.cgpa || 0
+    }
+  );
 
   const application: Application = {
     id: Date.now(),
@@ -39,7 +54,6 @@ export const applyJob = async (data: ApplyJobInput): Promise<Application> => {
   applications.push(application);
   return application;
 };
-
 export const getPipeline = async (): Promise<Pipeline> => {
   const pipeline: Pipeline = {
     Applied: [],

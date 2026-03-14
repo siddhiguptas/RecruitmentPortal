@@ -1,3 +1,6 @@
+import spacy
+import re
+from utils import extract_cgpa, normalize_skills
 from utils import extract_cgpa, normalize_skills
 
 # Load spaCy NLP model (loads once when server starts)
