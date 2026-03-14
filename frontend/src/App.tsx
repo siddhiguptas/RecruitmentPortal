@@ -10,7 +10,6 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
-// Student
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentProfile from "./pages/StudentProfile";
 import StudentApplications from "./pages/StudentApplications";
@@ -19,7 +18,6 @@ import StudentTests from "./pages/StudentTests";
 import TestAttempt from "./pages/TestAttempt";
 import TestResults from "./pages/TestResults";
 
-// Recruiter
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import RecruiterPostJob from "./pages/RecruiterPostJob";
 import RecruiterJobs from "./pages/RecruiterJobs";
@@ -36,18 +34,11 @@ import AdminJobs from "./pages/AdminJobs";
 import AdminAnalytics from "./pages/AdminAnalytics";
 
 import OnlineTest from "./pages/OnlineTest";
+
 import DashboardLayout from "./components/DashboardLayout";
 import { useAuth } from "./hooks/useAuth";
 
-/* Protected Route */
-
-const ProtectedRoute = ({
-  children,
-  allowedRoles,
-}: {
-  children: React.ReactNode;
-  allowedRoles?: string[];
-}) => {
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
