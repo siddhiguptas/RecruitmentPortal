@@ -23,7 +23,7 @@ import {
   getPipeline as getPipelineHandler,
   updateStatus as updateStatusHandler,
 } from "./server/controllers/atsController";
-
+import atsRoutes from './server/routes/atsRoutes';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -99,8 +99,7 @@ async function startServer() {
   app.post("/api/apply-job", applyJobHandler);
   app.get("/api/ats-pipeline", getPipelineHandler);
   app.put("/api/update-status/:id", updateStatusHandler);
-  
-
+  app.use('/api/ats', atsRoutes);
 // 3️⃣ Register ML routes
 app.use("/api/ml", mlRoutes);
 

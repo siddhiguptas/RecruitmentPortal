@@ -51,6 +51,7 @@ export const uploadResume = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: "Resume uploaded and parsed", profile });
   } catch (error: any) {
+    console.error("Resume Upload Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

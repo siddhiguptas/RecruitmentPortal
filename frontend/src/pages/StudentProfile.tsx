@@ -73,40 +73,41 @@ const StudentProfilePage: React.FC = () => {
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-      setError('Only PDF files are allowed');
-      return;
-    }
+  setUploadingResume(true);
+  setError(null);
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
-      return;
-    }
+  try {
+    const formData = new FormData();
+    formData.append("resume", file);
 
-    setError(null);
-    setUploadingResume(true);
+    const response = await studentService.uploadResume(formData);
 
-    try {
-      const formData = new FormData();
-      formData.append('resume', file);
+    const parsed = (response.profile as any).parsedResumeData;
 
-      const response = await studentService.uploadResume(formData);
-      setProfile(prev => ({ ...prev, resumePath: response.profile.resumePath }));
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload resume');
-    } finally {
-      setUploadingResume(false);
-      // Reset file input
-      e.target.value = '';
-    }
-  };
+    setProfile(prev => ({
+      ...prev,
+      fullName: parsed?.name || prev.fullName,
+      phone: parsed?.phone || prev.phone,
+      skills: parsed?.skills || [],
+      graduationYear: parsed?.education?.[0]?.end_year
+        ? parseInt(parsed.education[0].end_year)
+        : prev.graduationYear,
+      resumePath: response.profile.resumePath
+    }));
+
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Failed to upload resume");
+  } finally {
+    setUploadingResume(false);
+    e.target.value = "";
+  }
+};
 
   const handleViewResume = () => {
     if (profile.resumePath) {

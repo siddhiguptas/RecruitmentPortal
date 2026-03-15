@@ -5,6 +5,23 @@ import {
   updateStatus as updateStatusService,
 } from "../services/atsService";
 
+import { mlService } from "../services/mlService";
+
+export const parseResume = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const parsedData = await mlService.parseResume(req.file.path);
+
+    res.json(parsedData);
+
+  } catch (error) {
+    res.status(500).json({ message: "Resume parsing failed" });
+  }
+};
+
 export const applyJob = async (req: Request, res: Response) => {
   try {
     const result = await applyJobService(req.body);
@@ -36,3 +53,5 @@ export const updateStatus = async (req: Request, res: Response) => {
     res.status(500).json({ error: message });
   }
 };
+
+

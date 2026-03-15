@@ -17,24 +17,36 @@ interface Application {
   status: ApplicationStatus;
 }
 
+interface ResumeData {
+  skills: string[];
+  experience_years?: number;
+  cgpa?: number;
+}
+
+interface MatchJobResponse {
+  score: number;
+}
+
 type Pipeline = Record<ApplicationStatus, Application[]>;
 
 let applications: Application[] = [];
+
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 
 export const applyJob = async (data: ApplyJobInput): Promise<Application> => {
   const { studentName, jobRole, resumeText, jobDescription } = data;
 
   // STEP 1: parse resume
-  const parsed = await axios.post(
-    "http://127.0.0.1:8000/parse-resume",
+  const parsed = await axios.post<ResumeData>(
+    `${ML_SERVICE_URL}/parse-resume`,
     { text: resumeText }
   );
 
   const resumeData = parsed.data;
 
   // STEP 2: job matching
-  const response = await axios.post(
-    "http://127.0.0.1:8000/match-job",
+  const response = await axios.post<MatchJobResponse>(
+    `${ML_SERVICE_URL}/match-job`,
     {
       skills: resumeData.skills,
       job_description: jobDescription,
