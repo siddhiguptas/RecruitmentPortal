@@ -9,6 +9,10 @@ export const initProctorSocket = (io: Server) => {
 
     socket.on("start_exam", () => {
       console.log(`Exam started for user: ${socket.id}`);
+
+      if (mlWs && mlWs.readyState === WebSocket.OPEN) {
+        return;
+      }
       
       // Initialize connection to ML proctoring service
       mlWs = new WebSocket(ML_WS_URL);
@@ -21,8 +25,13 @@ export const initProctorSocket = (io: Server) => {
         try {
           const result = JSON.parse(data.toString());
           // If ML service detects suspicious activity, emit cheating_alert
-          if (result.is_suspicious || result.alert) {
-            socket.emit("cheating_alert", result);
+          if (result.is_suspicious || result.suspicious || result.alert) {
+            const payload = {
+              ...result,
+              message: result.message || result.alert || "Suspicious activity detected",
+            };
+            socket.emit("cheating_alert", payload);
+            socket.emit("proctoring_alert", payload);
           }
         } catch (error) {
           console.error("Error parsing ML proctoring message:", error);
@@ -31,6 +40,9 @@ export const initProctorSocket = (io: Server) => {
 
       mlWs.on("error", (error: any) => {
         console.error("ML Proctoring WebSocket Error:", error);
+        socket.emit("proctor_connection_error", {
+          message: "Proctoring service unavailable",
+        });
       });
 
       mlWs.on("close", () => {
@@ -38,10 +50,13 @@ export const initProctorSocket = (io: Server) => {
       });
     });
 
-    socket.on("video_frame", (frame: string) => {
+    socket.on("video_frame", (payload: any) => {
       // Forward base64 frame to ML service
+      const frame = typeof payload === "string" ? payload : payload?.frame;
       if (mlWs && mlWs.readyState === WebSocket.OPEN) {
-        mlWs.send(frame);
+        if (typeof frame === "string" && frame.length > 0) {
+          mlWs.send(frame);
+        }
       }
     });
 

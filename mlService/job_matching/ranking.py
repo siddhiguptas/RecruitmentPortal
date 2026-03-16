@@ -18,6 +18,7 @@ def rank_jobs_for_student(student_profile, jobs):
         )
 
         ranked_jobs.append({
+            "jobId": job.get("jobId") or job.get("_id"),
             "job_title": job.get("title", "Unknown"),
             "match_score": result["match_score"],
             "skill_score": result.get("skill_score", 0),
@@ -51,6 +52,7 @@ def rank_candidates_for_job(job, candidates):
         )
 
         ranked_candidates.append({
+            "studentId": student.get("studentId") or student.get("_id"),
             "name": student.get("name", "Unknown"),
             "match_score": result["match_score"],
             "skill_score": result.get("skill_score", 0),

@@ -31,7 +31,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, "uploads/resumes");
+const uploadsRoot = path.resolve(process.cwd(), "uploads");
+const uploadDir = path.join(uploadsRoot, "resumes");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -66,7 +67,7 @@ async function startServer() {
   app.use(morgan("dev"));
 
   // Static files for uploads
-  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+  app.use("/uploads", express.static(uploadsRoot));
 
   // Socket.io setup
   io.on("connection", (socket) => {

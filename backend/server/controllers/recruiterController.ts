@@ -9,6 +9,18 @@ import { NotificationService } from "../services/notificationService";
 import { mlService } from "../services/mlService";
 import { AuthRequest } from "../types";
 
+const toPublicResumeUrl = (req: AuthRequest, resumeValue?: string): string | undefined => {
+  if (!resumeValue) return undefined;
+  if (/^https?:\/\//i.test(resumeValue)) return resumeValue;
+
+  const host = req.get("host");
+  if (!host) return resumeValue;
+
+  const filename = resumeValue.replace(/\\/g, "/").split("/").pop();
+  if (!filename) return resumeValue;
+  return `${req.protocol}://${host}/uploads/resumes/${encodeURIComponent(filename)}`;
+};
+
 export const postJob = async (req: AuthRequest, res: Response) => {
   try {
     const job = await Job.create({
@@ -37,7 +49,16 @@ export const getApplicants = async (req: AuthRequest, res: Response) => {
     const applications = await Application.find({ job: jobId })
       .populate("student", "name email college branch skills")
       .sort("-matchScore");
-    res.json(applications);
+
+    const normalizedApplications = applications.map((application) => {
+      const obj = application.toObject();
+      return {
+        ...obj,
+        resumeUrl: toPublicResumeUrl(req, obj.resumeUrl),
+      };
+    });
+
+    res.json(normalizedApplications);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -51,18 +72,41 @@ export const getAllApplications = async (req: AuthRequest, res: Response) => {
     const jobIds = jobs.map((j) => j._id);
 
     const applications = await Application.find({ job: { $in: jobIds } })
-      .populate("student", "name email college branch skills")
+      .populate("student", "name email")
       .populate("job", "title")
       .sort("-createdAt");
 
-    // attach job title at top level for convenience
-    const appsWithTitle = applications.map((app) => {
-      const doc = app.toObject();
-      (doc as any).jobTitle = (app.job as any)?.title || "";
-      return doc;
+    const studentIds = applications
+      .map((app) => (app.student as any)?._id?.toString?.())
+      .filter(Boolean);
+
+    const profiles = await StudentProfile.find({ user: { $in: studentIds } }).select(
+      "user college branch skills resumeUrl"
+    );
+    const profileByUser = new Map(
+      profiles.map((profile) => [profile.user.toString(), profile])
+    );
+
+    const formatted = applications.map((app) => {
+      const student = app.student as any;
+      const job = app.job as any;
+      const profile = profileByUser.get(student?._id?.toString?.());
+      return {
+        _id: app._id,
+        studentName: student?.name || "Unknown",
+        email: student?.email || "",
+        college: profile?.college,
+        branch: profile?.branch,
+        skills: profile?.skills || [],
+        resumeUrl: toPublicResumeUrl(req, profile?.resumeUrl || app.resumeUrl),
+        jobTitle: job?.title || "",
+        appliedDate: app.createdAt,
+        status: app.status,
+        jobId: job?._id || app.job,
+      };
     });
 
-    res.json(appsWithTitle);
+    res.json(formatted);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -78,16 +122,29 @@ export const rankCandidates = async (req: AuthRequest, res: Response) => {
     const applications = await Application.find({ job: jobId }).populate("student");
     const candidates = await StudentProfile.find({
       user: { $in: applications.map((app) => (app.student as any)._id) },
+    }).populate("user", "name");
+
+    const candidatesPayload = candidates.map((candidate) => {
+      const parsed = (candidate as any).parsedResumeData || {};
+      const userId = (candidate.user as any)?._id?.toString?.() || candidate.user.toString();
+      return {
+        studentId: userId,
+        name: (candidate as any).fullName || (candidate as any).user?.name || "Unknown",
+        skills: candidate.skills?.length ? candidate.skills : parsed.skills || [],
+        experience_years: parsed.experience_years || 0,
+        cgpa: parsed.cgpa || (candidate as any).cgpa,
+      };
     });
 
     // Call ML service to rank candidates
-    const rankedCandidates = await mlService.rankCandidates(job.description, candidates);
+    const rankedCandidates = await mlService.rankCandidates(job, candidatesPayload);
 
     // Update match scores in applications
     for (const ranked of rankedCandidates) {
+      if (!ranked.studentId) continue;
       await Application.findOneAndUpdate(
         { job: jobId, student: ranked.studentId },
-        { matchScore: ranked.score }
+        { matchScore: Math.round((ranked.match_score || 0) * 100) }
       );
     }
 

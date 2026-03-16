@@ -31,9 +31,13 @@ The server runs at: http://127.0.0.1:8000
 | `/ocr-status` | GET | Check if OCR (Tesseract) is available |
 | `/test-ocr` | POST | Test OCR with a PDF file |
 | `/parse-resume` | POST | Upload PDF resume, returns structured profile |
+| `/parse-resume-text` | POST | Parse plain text resume content |
 | `/match-job` | POST | Match skills to job description |
 | `/recommend-jobs` | POST | Rank jobs for a student |
 | `/rank-candidates` | POST | Rank candidates for a job |
+| `/predict-placement` | POST | Placement probability and recommendations |
+| `/api/predict-placement` | POST | Placement probability and recommendations (alias) |
+| `/ws/proctor` | WebSocket | Proctoring stream (frames in, alerts out) |
 
 ## OCR Setup (Windows)
 

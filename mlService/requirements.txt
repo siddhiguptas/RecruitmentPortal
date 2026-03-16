@@ -10,3 +10,4 @@ numpy
 PyPDF2
 pydantic
 python-multipart
+spacy

@@ -56,6 +56,7 @@ export interface Job {
   applicationFee?: number;
   selectionProcess?: string[];
   applicationsCount?: number;
+  matchScore?: number;
 }
 
 export interface Recruiter {

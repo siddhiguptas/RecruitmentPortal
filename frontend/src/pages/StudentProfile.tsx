@@ -4,6 +4,16 @@ import { studentService } from '../services/studentService';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 
+const getAbsoluteResumeUrl = (resumePathOrUrl?: string) => {
+  if (!resumePathOrUrl) return '';
+  if (/^https?:\/\//i.test(resumePathOrUrl)) return resumePathOrUrl;
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  const apiOrigin = apiUrl.replace(/\/api\/?$/, '');
+  const normalizedPath = resumePathOrUrl.startsWith('/') ? resumePathOrUrl : `/${resumePathOrUrl}`;
+  return `${apiOrigin}${normalizedPath}`;
+};
+
 const StudentProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<Partial<StudentProfile>>({
     fullName: '',
@@ -29,7 +39,10 @@ const StudentProfilePage: React.FC = () => {
       setLoading(true);
       setError(null);
       const profileData = await studentService.getProfile();
-      setProfile(profileData);
+      setProfile({
+        ...profileData,
+        resumePath: profileData.resumePath || profileData.resumeUrl || '',
+      });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load profile');
     } finally {
@@ -95,7 +108,8 @@ const StudentProfilePage: React.FC = () => {
       graduationYear: parsed?.education?.[0]?.end_year
         ? parseInt(parsed.education[0].end_year)
         : prev.graduationYear,
-      resumePath: response.profile.resumePath
+      resumePath: response.profile.resumePath || response.profile.resumeUrl,
+      resumeUrl: response.profile.resumeUrl || response.profile.resumePath,
     }));
 
     setSuccess(true);
@@ -110,8 +124,9 @@ const StudentProfilePage: React.FC = () => {
 };
 
   const handleViewResume = () => {
-    if (profile.resumePath) {
-      const resumeUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/${profile.resumePath}`;
+    const resumePathOrUrl = profile.resumeUrl || profile.resumePath;
+    if (resumePathOrUrl) {
+      const resumeUrl = getAbsoluteResumeUrl(resumePathOrUrl);
       window.open(resumeUrl, '_blank');
     }
   };
@@ -206,12 +221,12 @@ const StudentProfilePage: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Resume
             </label>
-            {profile.resumePath ? (
+            {(profile.resumePath || profile.resumeUrl) ? (
               <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-md">
                 <div className="flex-1">
                   <p className="text-sm text-gray-600">Resume uploaded</p>
                   <p className="text-xs text-gray-500">
-                    {profile.resumePath.split('/').pop()}
+                    {(profile.resumePath || profile.resumeUrl || '').split('/').pop()}
                   </p>
                 </div>
                 <Button
@@ -228,7 +243,7 @@ const StudentProfilePage: React.FC = () => {
             
             <div className="mt-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {profile.resumePath ? 'Upload New Resume' : 'Upload Resume'} (PDF only, max 5MB)
+                {(profile.resumePath || profile.resumeUrl) ? 'Upload New Resume' : 'Upload Resume'} (PDF only, max 5MB)
               </label>
               <input
                 type="file"

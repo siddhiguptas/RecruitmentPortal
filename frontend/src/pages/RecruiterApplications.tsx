@@ -56,7 +56,7 @@ const RecruiterApplications: React.FC = () => {
   };
 
   const filtered = applications.filter((a) => {
-    if (jobFilter && a.jobId !== jobFilter) return false;
+    if (jobFilter && a.jobTitle !== jobFilter) return false;
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
     if (searchTerm && !a.studentName.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;

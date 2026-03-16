@@ -64,7 +64,11 @@ const StudentDashboard = () => {
     setError("");
     try {
       const response = await studentService.uploadResume(formData);
-      setProfile(response.profile);
+      setProfile({
+        ...response.profile,
+        resumeUrl: response.profile.resumeUrl || response.profile.resumePath,
+        resumePath: response.profile.resumePath || response.profile.resumeUrl,
+      });
       // Refresh jobs as profile changed
       const updatedJobs = await studentService.getRecommendedJobs();
       setJobs(updatedJobs);
@@ -72,6 +76,7 @@ const StudentDashboard = () => {
       setError(err.response?.data?.message || "Failed to upload resume");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -120,7 +125,7 @@ const StudentDashboard = () => {
             ref={fileInputRef} 
             onChange={handleFileUpload} 
             className="hidden" 
-            accept=".pdf,.doc,.docx"
+            accept=".pdf"
           />
           <Button 
             onClick={() => fileInputRef.current?.click()}
@@ -128,7 +133,7 @@ const StudentDashboard = () => {
             className="gap-2"
           >
             <Upload size={18} />
-            {profile?.resumeUrl ? "Update Resume" : "Upload Resume"}
+            {(profile?.resumeUrl || profile?.resumePath) ? "Update Resume" : "Upload Resume"}
           </Button>
         </div>
       </div>
@@ -145,7 +150,10 @@ const StudentDashboard = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-900">Recommended for You</h2>
-            <button className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+            <button 
+              onClick={() => navigate("/student/jobs")}
+              className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+            >
               View All <ChevronRight size={16} />
             </button>
           </div>
@@ -186,7 +194,7 @@ const StudentDashboard = () => {
                     <div className="text-right flex flex-col items-end gap-3">
                       <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100">
                         <TrendingUp size={14} />
-                        95% Match
+                        {typeof job.matchScore === "number" ? `${job.matchScore}% Match` : "Match"}
                       </div>
                       <Button 
                         size="sm" 

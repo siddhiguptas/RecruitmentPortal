@@ -9,9 +9,10 @@ interface PredictRequestBody {
 
 export const getPrediction = async (req: Request, res: Response) => {
   const body: PredictRequestBody = req.body;
+  const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
 
   try {
-    const response = await axios.post("http://127.0.0.1:8000/predict", body, {
+    const response = await axios.post(`${ML_SERVICE_URL}/predict-placement`, body, {
       headers: { "Content-Type": "application/json" },
     });
 

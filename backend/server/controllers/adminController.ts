@@ -6,6 +6,18 @@ import { Application } from "../models/Application";
 import { StudentProfile } from "../models/StudentProfile";
 import { mlService } from "../services/mlService";
 
+const toPublicResumeUrl = (req: Request, resumeValue?: string): string | undefined => {
+  if (!resumeValue) return undefined;
+  if (/^https?:\/\//i.test(resumeValue)) return resumeValue;
+
+  const host = req.get("host");
+  if (!host) return resumeValue;
+
+  const filename = resumeValue.replace(/\\/g, "/").split("/").pop();
+  if (!filename) return resumeValue;
+  return `${req.protocol}://${host}/uploads/resumes/${encodeURIComponent(filename)}`;
+};
+
 export const getPlacementAnalytics = async (req: Request, res: Response) => {
   try {
     const totalStudents = await User.countDocuments({ role: "student" });
@@ -34,9 +46,10 @@ export const verifyStudentEligibility = async (req: Request, res: Response) => {
   const { isEligible } = req.body;
 
   try {
+    const eligibilityStatus = isEligible ? "eligible" : "ineligible";
     const profile = await StudentProfile.findOneAndUpdate(
       { user: studentId },
-      { eligibilityStatus: isEligible },
+      { eligibilityStatus },
       { new: true }
     );
     res.json(profile);
@@ -76,7 +89,20 @@ export const getAllJobs = async (req: Request, res: Response) => {
 export const getAllStudents = async (req: Request, res: Response) => {
   try {
     const students = await StudentProfile.find().populate("user", "name email");
-    res.json(students);
+    const normalizedStudents = students.map((student) => {
+      const obj = student.toObject();
+      return {
+        ...obj,
+        eligibilityStatus:
+          typeof obj.eligibilityStatus === "boolean"
+            ? obj.eligibilityStatus
+              ? "eligible"
+              : "ineligible"
+            : obj.eligibilityStatus,
+        resumeUrl: toPublicResumeUrl(req, obj.resumeUrl),
+      };
+    });
+    res.json(normalizedStudents);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Play
 } from "lucide-react";
-import { studentService } from "../services/studentService";
+import { getTestDetails, startTest, saveAnswer, submitTest } from "../services/testService";
 import { socketService } from "../services/socketService";
 import { Button } from "../components/Button";
 import { cn } from "../utils";
@@ -42,6 +42,7 @@ const OnlineTest = () => {
   const [test, setTest] = useState<Test | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"instructions" | "in-progress" | "submitted">("instructions");
+  const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -121,20 +122,59 @@ const OnlineTest = () => {
   };
 
   useEffect(() => {
+    socketService.connect();
     fetchTest();
+
+    const handleCheatingAlert = (data: { message?: string; alert?: string }) => {
+      const message = data?.message || data?.alert || "Suspicious activity detected";
+      setAlerts(prev => [message, ...prev.slice(0, 2)]);
+      setTimeout(() => {
+        setAlerts(prev => prev.filter(a => a !== message));
+      }, 5000);
+    };
+
+    const handleProctorConnectionError = (data: { message?: string }) => {
+      const message = data?.message || "Proctoring service unavailable";
+      setAlerts(prev => [message, ...prev.slice(0, 2)]);
+    };
+
+    socketService.on("cheating_alert", handleCheatingAlert);
+    socketService.on("proctor_connection_error", handleProctorConnectionError);
+
     return () => {
       stopProctoring();
       stopTimer();
+      socketService.off("cheating_alert", handleCheatingAlert);
+      socketService.off("proctor_connection_error", handleProctorConnectionError);
+      socketService.disconnect();
     };
   }, [testId]);
+
+  const normalizeTest = (raw: any): Test => {
+    const questions = (raw?.questions || []).map((q: any, idx: number) => ({
+      _id: q._id || `q-${idx}`,
+      text: q.text || q.questionText || "",
+      options: q.options || [],
+      type: "mcq" as const
+    }));
+
+    return {
+      _id: raw?._id || "test-1",
+      title: raw?.title || "Assessment",
+      description: raw?.description || "",
+      duration: raw?.duration || 30,
+      questions
+    };
+  };
 
   const fetchTest = async () => {
     setLoading(true);
     try {
       // Try to fetch from API, fallback to mock
-      const data = await studentService.getTestDetails(testId || "test-1").catch(() => mockTest);
-      setTest(data);
-      setTimeLeft(data.duration * 60);
+      const data = await getTestDetails(testId || "test-1").catch(() => mockTest);
+      const normalized = data?.test ? normalizeTest(data.test) : normalizeTest(data);
+      setTest(normalized);
+      setTimeLeft(normalized.duration * 60);
     } catch (err) {
       console.error(err);
     } finally {
@@ -150,22 +190,27 @@ const OnlineTest = () => {
         videoRef.current.srcObject = stream;
         setIsCameraActive(true);
       }
-      
+
+      try {
+        const result = await startTest(testId || "test-1");
+        setAttemptId(result.attemptId);
+        if (result?.test) {
+          const normalized = normalizeTest(result.test);
+          setTest(normalized);
+          if (typeof result.timeRemaining === "number") {
+            setTimeLeft(result.timeRemaining);
+          }
+        }
+      } catch (startErr) {
+        console.warn("Failed to start test via API, continuing in mock mode.", startErr);
+      }
+
       setStatus("in-progress");
       startTimer();
       startProctoring();
       
       // Notify backend via socket
       socketService.emit("start_exam", { testId, timestamp: new Date() });
-      
-      // Listen for proctoring alerts
-      socketService.on("cheating_alert", (data: { message: string }) => {
-        setAlerts(prev => [data.message, ...prev.slice(0, 2)]);
-        // Auto-remove alert after 5 seconds
-        setTimeout(() => {
-          setAlerts(prev => prev.filter(a => a !== data.message));
-        }, 5000);
-      });
     } catch (err) {
       alert("Camera access is required for proctoring. Please enable it to start the exam.");
     }
@@ -214,16 +259,20 @@ const OnlineTest = () => {
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const base64Frame = canvas.toDataURL("image/jpeg", 0.5); // Compressed
       
-      socketService.emit("video_frame", { 
-        testId, 
-        frame: base64Frame,
-        timestamp: new Date() 
-      });
+      socketService.emit("video_frame", base64Frame);
     }
   }, [testId, isCameraActive]);
 
   const handleOptionSelect = (questionId: string, optionIdx: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionIdx }));
+    if (attemptId && test) {
+      const questionIndex = test.questions.findIndex((q) => q._id === questionId);
+      if (questionIndex >= 0) {
+        saveAnswer(attemptId, "mcq", questionIndex, optionIdx, 0).catch((err) => {
+          console.warn("Failed to save answer", err);
+        });
+      }
+    }
   };
 
   const submitExam = async () => {
@@ -232,10 +281,12 @@ const OnlineTest = () => {
     stopProctoring();
     
     try {
-      await studentService.submitTest(testId || "test-1", answers).catch(() => {
+      if (attemptId) {
+        await submitTest(attemptId);
+      } else {
         // Mock success if API fails
-        return new Promise(resolve => setTimeout(resolve, 1500));
-      });
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
       
       socketService.emit("exam_end", { testId, timestamp: new Date() });
       setStatus("submitted");

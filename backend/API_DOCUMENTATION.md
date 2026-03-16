@@ -215,10 +215,11 @@
 The backend communicates with the Python ML service at `http://localhost:8000`.
 
 *   `POST /parse-resume`: Extracts skills, education, and experience from a resume file.
+*   `POST /parse-resume-text`: Extracts skills, education, and experience from plain text.
 *   `POST /match-job`: Calculates match score between a student profile and job description.
 *   `POST /recommend-jobs`: Returns ranked job recommendations for a student.
 *   `POST /rank-candidates`: Returns ranked candidates for a recruiter job.
-*   `POST /api/predict-placement`: Returns placement probability and recommendations for a student.
+*   `POST /predict-placement` or `POST /api/predict-placement`: Returns placement probability and recommendations for a student.
 *   `WebSocket /ws/proctor`: Streams webcam frames and returns suspicious activity detection.
 
 ---

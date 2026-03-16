@@ -3,7 +3,12 @@ import mongoose from "mongoose";
 const studentProfileSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    skills: [{ type: String }],
+    fullName: { type: String },
+    phone: { type: String },
+    college: { type: String },
+    branch: { type: String },
+    graduationYear: { type: Number },
+    skills: { type: [String], default: [] },
     education: [
       {
         institution: String,
@@ -25,8 +30,13 @@ const studentProfileSchema = new mongoose.Schema(
     ],
     resumeUrl: { type: String },
     parsedResumeData: { type: Object }, // Data from ML service
+    cgpa: { type: Number },
     placementProbability: { type: Number }, // From ML service
-    eligibilityStatus: { type: Boolean, default: true },
+    eligibilityStatus: {
+      type: String,
+      enum: ["pending", "eligible", "ineligible"],
+      default: "pending",
+    },
   },
   { timestamps: true }
 );

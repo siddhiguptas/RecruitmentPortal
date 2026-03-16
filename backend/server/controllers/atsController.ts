@@ -13,7 +13,8 @@ export const parseResume = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const parsedData = await mlService.parseResume(req.file.path);
+    const filename = req.file.originalname || "resume.pdf";
+    const parsedData = await mlService.parseResumeBuffer(req.file.buffer, filename);
 
     res.json(parsedData);
 

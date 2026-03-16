@@ -39,6 +39,7 @@ class JobMatchResponse(BaseModel):
     recommendation: str
 
 class Job(BaseModel):
+    jobId: Optional[str] = None
     title: str
     description: str
 
@@ -55,6 +56,7 @@ class JobRankingRequest(BaseModel):
 
 
 class JobRankingItem(BaseModel):
+    jobId: Optional[str] = None
     job_title: str
     match_score: float
     skill_score: float
@@ -68,6 +70,7 @@ class JobRankingResponse(BaseModel):
 
 
 class Candidate(BaseModel):
+    studentId: Optional[str] = None
     name: str
     skills: List[str]
     experience_years: float = 0
@@ -80,6 +83,7 @@ class CandidateRankingRequest(BaseModel):
 
 
 class CandidateRankingItem(BaseModel):
+    studentId: Optional[str] = None
     name: str
     match_score: float
     skill_score: float

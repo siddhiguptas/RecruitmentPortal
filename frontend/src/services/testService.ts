@@ -105,7 +105,7 @@ export const saveAnswer = async (
   timeSpent: number
 ): Promise<void> => {
   try {
-    await api.post(`/api/tests/${attemptId}/save-answer`, {
+    await api.post(`/tests/${attemptId}/save-answer`, {
       type,
       questionIndex,
       answer,
@@ -122,7 +122,7 @@ export const saveAnswer = async (
  */
 export const submitTest = async (attemptId: string): Promise<any> => {
   try {
-    const response = await api.post(`/api/tests/${attemptId}/submit`);
+    const response = await api.post(`/tests/${attemptId}/submit`);
     return response.data;
   } catch (error) {
     console.error("Error submitting test:", error);
@@ -135,7 +135,7 @@ export const submitTest = async (attemptId: string): Promise<any> => {
  */
 export const autoSubmitTest = async (attemptId: string): Promise<any> => {
   try {
-    const response = await api.post(`/api/tests/${attemptId}/auto-submit`);
+    const response = await api.post(`/tests/${attemptId}/auto-submit`);
     return response.data;
   } catch (error) {
     console.error("Error auto-submitting test:", error);

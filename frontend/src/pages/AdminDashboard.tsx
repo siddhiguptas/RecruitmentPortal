@@ -115,6 +115,38 @@ const AdminDashboard = () => {
     { name: "Apple", jobs: 6 },
   ];
 
+  const predictionPercent = predictionData
+    ? Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(
+            typeof predictionData.placement_percent === "number"
+              ? predictionData.placement_percent
+              : typeof predictionData.placement_probability === "number"
+              ? predictionData.placement_probability * 100
+              : 0
+          )
+        )
+      )
+    : 0;
+
+  const predictionLabel =
+    predictionPercent >= 75
+      ? "High Chance"
+      : predictionPercent >= 50
+      ? "Moderate Chance"
+      : "Low Chance";
+
+  const predictionRecommendations =
+    Array.isArray(predictionData?.recommendations) && predictionData.recommendations.length > 0
+      ? predictionData.recommendations
+      : [
+          "Focus on System Design concepts for high-scale applications.",
+          "Gain hands-on experience with AWS Lambda and S3.",
+          "Participate in 2+ hackathons to improve collaborative coding skills.",
+        ];
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header */}
@@ -420,17 +452,17 @@ const AdminDashboard = () => {
                     strokeWidth="12"
                     fill="transparent"
                     strokeDasharray={552.92}
-                    strokeDashoffset={552.92 * (1 - 0.85)}
+                    strokeDashoffset={552.92 * (1 - predictionPercent / 100)}
                     className="text-emerald-500 transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-5xl font-black text-slate-900">85%</span>
-                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-1">High Chance</span>
+                  <span className="text-5xl font-black text-slate-900">{predictionPercent}%</span>
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-1">{predictionLabel}</span>
                 </div>
               </div>
               <p className="text-slate-500 text-sm mt-8 leading-relaxed">
-                Based on current CGPA, skill set, and market trends, the student has a high probability of placement in Tier-1 companies.
+                Based on current CGPA, skill set, and available history, this is the predicted placement probability.
               </p>
             </div>
 
@@ -470,18 +502,12 @@ const AdminDashboard = () => {
                   Recommended Improvements
                 </h4>
                 <ul className="space-y-2">
-                  <li className="text-sm text-blue-800 flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
-                    Focus on System Design concepts for high-scale applications.
-                  </li>
-                  <li className="text-sm text-blue-800 flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
-                    Gain hands-on experience with AWS Lambda and S3.
-                  </li>
-                  <li className="text-sm text-blue-800 flex items-start gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
-                    Participate in 2+ hackathons to improve collaborative coding skills.
-                  </li>
+                  {predictionRecommendations.map((rec: string, i: number) => (
+                    <li key={i} className="text-sm text-blue-800 flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5 flex-shrink-0" />
+                      {rec}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
