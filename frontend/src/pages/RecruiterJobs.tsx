@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Job } from '../types';
+import { recruiterService } from '../services/recruiterService';
+import api from '../services/api';
 
 const RecruiterJobs: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -12,9 +14,7 @@ const RecruiterJobs: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const resp = await fetch('/api/recruiters/jobs');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: Job[] = await resp.json();
+      const data = await recruiterService.getMyJobs();
       setJobs(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load jobs');
@@ -30,8 +30,7 @@ const RecruiterJobs: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this job?')) return;
     try {
-      const resp = await fetch(`/api/recruiters/jobs/${id}`, { method: 'DELETE' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await api.delete(`/recruiters/jobs/${id}`);
       setJobs(jobs.filter((j) => j._id !== id));
     } catch (err: any) {
       alert(err.message || 'Delete failed');
@@ -40,12 +39,7 @@ const RecruiterJobs: React.FC = () => {
 
   const handleClose = async (id: string) => {
     try {
-      const resp = await fetch(`/api/recruiters/jobs/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: false }),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await api.put(`/recruiters/jobs/${id}`, { isActive: false });
       setJobs(jobs.map((j) => (j._id === id ? { ...j, isActive: false } : j)));
     } catch (err: any) {
       alert(err.message || 'Unable to close job');

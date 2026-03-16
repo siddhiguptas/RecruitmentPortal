@@ -5,11 +5,12 @@ import { Application } from "../models/Application";
 import { Interview } from "../models/Interview";
 import { User } from "../models/User";
 import { StudentProfile } from "../models/StudentProfile";
+import { RecruiterProfile } from "../models/RecruiterProfile";
 import { NotificationService } from "../services/notificationService";
 import { mlService } from "../services/mlService";
 import { AuthRequest } from "../types";
 
-const toPublicResumeUrl = (req: AuthRequest, resumeValue?: string): string | undefined => {
+const toPublicResumeUrl = (req: AuthRequest, resumeValue?: string | null): string | undefined => {
   if (!resumeValue) return undefined;
   if (/^https?:\/\//i.test(resumeValue)) return resumeValue;
 
@@ -261,6 +262,135 @@ export const scheduleInterview = async (req: AuthRequest, res: Response) => {
     }
 
     res.status(201).json(interview);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user._id);
+    let profile = await RecruiterProfile.findOne({ user: req.user._id });
+    
+    if (!profile) {
+      profile = await RecruiterProfile.create({
+        user: req.user._id,
+        companyName: "Company Name Not Set",
+      });
+    }
+
+    const activeJobsCount = await Job.countDocuments({ recruiter: req.user._id, isActive: true });
+    const totalJobsCount = await Job.countDocuments({ recruiter: req.user._id });
+    const jobIds = (await Job.find({ recruiter: req.user._id }).select('_id')).map(j => j._id);
+    const totalApplicationsCount = await Application.countDocuments({ job: { $in: jobIds } });
+    const shortlistedCount = await Application.countDocuments({ job: { $in: jobIds }, status: 'shortlisted' });
+    
+    // Quick jobs & applications lookup for the dashboard summary pieces
+    const recentJobs = await Job.find({ recruiter: req.user._id }).sort("-createdAt").limit(5);
+    const recentApps = await Application.find({ job: { $in: jobIds } }).populate("job", "title").populate("student", "name email").sort("-createdAt").limit(5);
+
+    const formattedJobs = await Promise.all(recentJobs.map(async (job) => {
+      const applicants = await Application.countDocuments({ job: job._id });
+      return { id: job._id, title: job.title, location: job.location, applicants, isActive: job.isActive };
+    }));
+
+    const formattedApps = recentApps.map((app) => {
+      return {
+        id: app._id,
+        studentName: (app.student as any)?.name || "Unknown",
+        skills: [],
+        jobTitle: (app.job as any)?.title || "",
+        appliedDate: app.createdAt
+      };
+    });
+
+    res.json({
+      recruiter: {
+        name: user?.name,
+        email: user?.email,
+        phone: profile.phone,
+        profilePhotoUrl: profile.profilePhotoUrl
+      },
+      company: {
+        name: profile.companyName,
+        logoUrl: profile.logoUrl,
+        industry: profile.industry,
+        website: profile.companyWebsite,
+        size: profile.size,
+        location: profile.location,
+        foundedYear: profile.foundedYear,
+        description: profile.companyDescription
+      },
+      stats: {
+        totalJobs: totalJobsCount,
+        activeJobs: activeJobsCount,
+        totalApplications: totalApplicationsCount,
+        shortlistedStudents: shortlistedCount
+      },
+      recentJobs: formattedJobs,
+      recentApplications: formattedApps,
+      verificationStatus: "verified"
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { recruiter, company } = req.body;
+    
+    if (recruiter && recruiter.name) {
+      await User.findByIdAndUpdate(req.user._id, { name: recruiter.name });
+    }
+
+    const updateData: any = {};
+    if (recruiter?.phone) updateData.phone = recruiter.phone;
+    if (company) {
+      if (company.name) updateData.companyName = company.name;
+      if (company.website) updateData.companyWebsite = company.website;
+      if (company.description) updateData.companyDescription = company.description;
+      if (company.industry) updateData.industry = company.industry;
+      if (company.location) updateData.location = company.location;
+      if (company.size) updateData.size = company.size;
+    }
+
+    const profile = await RecruiterProfile.findOneAndUpdate(
+      { user: req.user._id },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+    res.json(profile);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadProfilePhoto = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const profilePhotoUrl = `/uploads/${req.file.filename}`;
+    const profile = await RecruiterProfile.findOneAndUpdate(
+       { user: req.user._id },
+       { profilePhotoUrl },
+       { new: true, upsert: true }
+    );
+    res.json({ profilePhotoUrl });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const uploadLogo = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const logoUrl = `/uploads/${req.file.filename}`;
+    const profile = await RecruiterProfile.findOneAndUpdate(
+       { user: req.user._id },
+       { logoUrl },
+       { new: true, upsert: true }
+    );
+    res.json({ logoUrl });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

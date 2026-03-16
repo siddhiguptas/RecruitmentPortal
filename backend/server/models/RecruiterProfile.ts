@@ -8,6 +8,11 @@ const recruiterProfileSchema = new mongoose.Schema(
     companyDescription: { type: String },
     industry: { type: String },
     location: { type: String },
+    phone: { type: String },
+    profilePhotoUrl: { type: String },
+    logoUrl: { type: String },
+    size: { type: String },
+    foundedYear: { type: Number },
   },
   { timestamps: true }
 );

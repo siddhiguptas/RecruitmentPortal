@@ -164,6 +164,7 @@ def recommend_jobs(data: JobRankingRequest):
         "experience_years": valid_experience,
         "cgpa": valid_cgpa
     }
+    print(f"DEBUG: Input Student Profile: {student_profile}")
 
     ranked = rank_jobs_for_student(
         student_profile=student_profile,

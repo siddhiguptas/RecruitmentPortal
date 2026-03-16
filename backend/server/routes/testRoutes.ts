@@ -15,7 +15,7 @@ import { protect, authorize } from "../middleware/authMiddleware";
 const router = express.Router();
 
 router.use(protect);
-router.use(authorize("student"));
+router.use(authorize("student", "recruiter", "admin"));
 
 // Get all available tests
 router.get("/", getAvailableTests);

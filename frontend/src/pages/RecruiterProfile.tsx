@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import api from '../services/api';
 
 interface RecruiterInfo {
   name: string;
@@ -177,9 +178,8 @@ const RecruiterProfile: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const resp = await fetch('/api/recruiters/profile');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: ProfileResponse = await resp.json();
+      const resp = await api.get('/recruiters/profile');
+      const data: ProfileResponse = resp.data;
       setProfile(data);
       setFormValues(data);
     } catch (err: any) {
@@ -230,20 +230,16 @@ const RecruiterProfile: React.FC = () => {
       if (photoFile) {
         const form = new FormData();
         form.append('photo', photoFile);
-        await fetch('/api/recruiters/upload-profile-photo', { method: 'POST', body: form });
+        await api.post('/recruiters/upload-profile-photo', form);
       }
       if (logoFile) {
         const form = new FormData();
         form.append('logo', logoFile);
-        await fetch('/api/recruiters/upload-logo', { method: 'POST', body: form });
+        await api.post('/recruiters/upload-logo', form);
       }
       // then update profile
-      const resp = await fetch('/api/recruiters/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formValues),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await api.put('/recruiters/profile', formValues);
+      
       await fetchProfile();
       setEditing(false);
     } catch (err: any) {

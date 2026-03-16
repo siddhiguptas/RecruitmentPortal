@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 interface ApplicationItem {
   _id: string;
@@ -26,10 +27,8 @@ const RecruiterApplications: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const resp = await fetch('/api/recruiters/applications');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: ApplicationItem[] = await resp.json();
-      setApplications(data);
+      const resp = await api.get('/recruiters/applications');
+      setApplications(resp.data);
     } catch (err: any) {
       setError(err.message || 'Failed to load applications');
     } finally {
@@ -43,12 +42,7 @@ const RecruiterApplications: React.FC = () => {
 
   const changeStatus = async (id: string, status: string) => {
     try {
-      const resp = await fetch(`/api/recruiters/applications/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      await api.put(`/recruiters/applications/${id}/status`, { status });
       setApplications(applications.map((a) => (a._id === id ? { ...a, status: status as any } : a)));
     } catch (err: any) {
       alert(err.message || 'Status update failed');

@@ -30,6 +30,7 @@ const RecruiterDashboard = () => {
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [view, setView] = useState<"overview" | "job-details">("overview");
+  const [allApplications, setAllApplications] = useState<Application[]>([]);
 
   useEffect(() => {
     fetchJobs();
@@ -53,10 +54,14 @@ const RecruiterDashboard = () => {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const data = await recruiterService.getMyJobs().catch(() => []);
-      setJobs(data);
+      const [jobsData, appsData] = await Promise.all([
+        recruiterService.getMyJobs().catch(() => []),
+        recruiterService.getAllApplications().catch(() => [])
+      ]);
+      setJobs(jobsData);
+      setAllApplications(appsData);
     } catch (err) {
-      console.error("Failed to load jobs", err);
+      console.error("Failed to load dashboard data", err);
     } finally {
       setLoading(false);
     }
@@ -169,10 +174,10 @@ const RecruiterDashboard = () => {
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Active Jobs", value: jobs.length, icon: <Briefcase className="text-emerald-600" />, color: "bg-emerald-50" },
-              { label: "Total Applicants", value: "124", icon: <Users className="text-blue-600" />, color: "bg-blue-50" },
-              { label: "Interviews", value: "12", icon: <Calendar className="text-purple-600" />, color: "bg-purple-50" },
-              { label: "Hired", value: "8", icon: <CheckCircle2 className="text-amber-600" />, color: "bg-amber-50" },
+              { label: "Active Jobs", value: jobs.filter(j => j.isActive !== false).length, icon: <Briefcase className="text-emerald-600" />, color: "bg-emerald-50" },
+              { label: "Total Applicants", value: allApplications.length, icon: <Users className="text-blue-600" />, color: "bg-blue-50" },
+              { label: "Interviews", value: allApplications.filter(a => a.status === 'interviewing').length, icon: <Calendar className="text-purple-600" />, color: "bg-purple-50" },
+              { label: "Hired", value: allApplications.filter(a => a.status === 'offered').length, icon: <CheckCircle2 className="text-amber-600" />, color: "bg-amber-50" },
             ].map((stat, i) => (
               <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4">
                 <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", stat.color)}>
@@ -230,7 +235,9 @@ const RecruiterDashboard = () => {
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Applicants</p>
                         <div className="flex items-center gap-2 justify-end">
                           <Users size={14} className="text-slate-400" />
-                          <span className="font-bold text-slate-900">24</span>
+                          <span className="font-bold text-slate-900">
+                            {allApplications.filter(a => (a.job as any)?._id === job._id || a.job === job._id).length}
+                          </span>
                         </div>
                       </div>
                       <div className="hidden md:block text-right">

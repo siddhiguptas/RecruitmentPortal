@@ -11,15 +11,15 @@ def rank_jobs_for_student(student_profile, jobs):
     for job in jobs:
 
         result = calculate_match(
-            resume_skills=student_profile.get("skills", []),
-            job_description=job.get("description", ""),
-            experience_years=student_profile.get("experience_years", 0),
-            cgpa=student_profile.get("cgpa")
+            resume_skills=student_profile.skills or [],
+            job_description=job.description or "",
+            experience_years=student_profile.experience_years or 0,
+            cgpa=student_profile.cgpa
         )
 
         ranked_jobs.append({
-            "jobId": job.get("jobId") or job.get("_id"),
-            "job_title": job.get("title", "Unknown"),
+            "jobId": job.jobId,
+            "job_title": job.title or "Unknown",
             "match_score": result["match_score"],
             "skill_score": result.get("skill_score", 0),
             "experience_score": result.get("experience_score", 0),
@@ -45,15 +45,15 @@ def rank_candidates_for_job(job, candidates):
     for student in candidates:
 
         result = calculate_match(
-            resume_skills=student.get("skills", []),
-            job_description=job.get("description", ""),
-            experience_years=student.get("experience_years", 0),
-            cgpa=student.get("cgpa")
+            resume_skills=student.skills or [],
+            job_description=job.description or "",
+            experience_years=student.experience_years or 0,
+            cgpa=student.cgpa
         )
 
         ranked_candidates.append({
-            "studentId": student.get("studentId") or student.get("_id"),
-            "name": student.get("name", "Unknown"),
+            "studentId": student.studentId,
+            "name": student.name or "Unknown",
             "match_score": result["match_score"],
             "skill_score": result.get("skill_score", 0),
             "experience_score": result.get("experience_score", 0),

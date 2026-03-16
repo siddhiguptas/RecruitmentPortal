@@ -76,10 +76,21 @@ def calculate_cgpa_score(cgpa: float) -> float:
     """
     if cgpa is None:
         return 0.0
+        
+    try:
+        cgpa_val = float(cgpa)
+    except (ValueError, TypeError):
+        return 0.0
+
+    # If CGPA is on a 100-point scale or percentage, convert it to 10-point scale
+    if cgpa_val > 10.0:
+        cgpa_val = cgpa_val / 10.0
+        if cgpa_val > 10.0: # e.g., if it was 1000
+            cgpa_val = 10.0
     
     # Convert 10-point scale to 0-1 score
     # 10 = 1.0, 7 = 0.7, 5 = 0.5, below 5 = 0
-    if cgpa >= 9:
+    if cgpa_val >= 9:
         return 1.0
     elif cgpa >= 8:
         return 0.9
@@ -95,11 +106,30 @@ def calculate_cgpa_score(cgpa: float) -> float:
 
 def calculate_match(resume_skills, job_description, experience_years=0, cgpa=None):
 
-    resume_skills = set([s.lower() for s in resume_skills])
-    job_skills = set(extract_job_skills(job_description))
+    # Flatten and securely parse the resume_skills which might contain comma-separated strings like ["React, Node, Mongo"]
+    flattened_resume_skills = []
+    for s in (resume_skills or []):
+        flattened_resume_skills.extend([skill.strip() for skill in str(s).lower().split(",")])
+
+    resume_skills = set(flattened_resume_skills)
+    job_skills = set(extract_job_skills(str(job_description or "")))
+
+    # Convert experience to a float safely
+    try:
+        exp_val = float(experience_years)
+    except (ValueError, TypeError):
+        exp_val = 0.0
 
     # ---------- SKILL SCORE (MAIN SIGNAL) ----------
-    matched_skills = list(resume_skills & job_skills)
+    # Improved check: Check if resume skill is a substring of job skill or vice-versa
+    matched_skills = []
+    for j_skill in job_skills:
+        for r_skill in resume_skills:
+            if j_skill in r_skill or r_skill in j_skill:
+                matched_skills.append(j_skill)
+                break
+    
+    matched_skills = list(set(matched_skills))
 
     if len(job_skills) == 0:
         skill_score = 0
@@ -110,22 +140,29 @@ def calculate_match(resume_skills, job_description, experience_years=0, cgpa=Non
 
     # ---------- TEXT SIMILARITY (SECONDARY) ----------
     resume_text = " ".join(resume_skills)
-    docs = [resume_text, job_description.lower()]
+    job_text = str(job_description or "").lower()
+    
+    if not resume_text.strip() or not job_text.strip():
+        text_similarity = 0.0
+    else:
+        try:
+            docs = [resume_text, job_text]
+            vectorizer = TfidfVectorizer(stop_words="english")
+            tfidf = vectorizer.fit_transform(docs)
 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    tfidf = vectorizer.fit_transform(docs)
-
-    text_similarity = cosine_similarity(
-        tfidf[0:1],
-        tfidf[1:2]
-    )[0][0]
+            text_similarity = cosine_similarity(
+                tfidf[0:1],
+                tfidf[1:2]
+            )[0][0]
+        except ValueError: # Catch empty vocabulary error
+            text_similarity = 0.0
 
     # ---------- EXPERIENCE SCORE ----------
-    if experience_years >= 3:
+    if exp_val >= 3:
         experience_score = 1.0
-    elif experience_years >= 1:
+    elif exp_val >= 1:
         experience_score = 0.7
-    elif experience_years > 0:
+    elif exp_val > 0:
         experience_score = 0.4
     else:
         experience_score = 0.2

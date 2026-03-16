@@ -1,10 +1,11 @@
 import React, { useState, FormEvent } from 'react';
+import { recruiterService } from '../services/recruiterService';
 
 interface JobFormData {
   title: string;
   company: string;
   location: string;
-  jobType: 'Internship' | 'Full Time' | 'Part Time';
+  jobType: 'internship' | 'full-time' | 'part-time';
   salary: string;
   description: string;
   skills: string; // comma separated
@@ -19,7 +20,7 @@ const RecruiterPostJob: React.FC = () => {
     title: '',
     company: '',
     location: '',
-    jobType: 'Internship',
+    jobType: 'internship',
     salary: '',
     description: '',
     skills: '',
@@ -44,23 +45,23 @@ const RecruiterPostJob: React.FC = () => {
     try {
       const body = {
         ...form,
-        skills: form.skills
+        requirements: form.skills
           .split(',')
           .map((s) => s.trim())
           .filter((s) => s),
       };
-      const resp = await fetch('/api/recruiters/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      
+      await recruiterService.postJob({
+        ...body,
+        skillsRequired: body.requirements
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      
       setSuccess('Job posted successfully');
       setForm({
         title: '',
         company: '',
         location: '',
-        jobType: 'Internship',
+        jobType: 'internship',
         salary: '',
         description: '',
         skills: '',
@@ -120,9 +121,9 @@ const RecruiterPostJob: React.FC = () => {
             onChange={handleChange}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
-            <option>Internship</option>
-            <option>Full Time</option>
-            <option>Part Time</option>
+            <option value="internship">Internship</option>
+            <option value="full-time">Full Time</option>
+            <option value="part-time">Part Time</option>
           </select>
         </div>
         <div>

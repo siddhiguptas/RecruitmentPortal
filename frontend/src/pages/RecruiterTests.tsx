@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 interface TestItem {
   _id: string;
@@ -24,10 +25,8 @@ const RecruiterTests: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const resp = await fetch('/api/tests');
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: TestItem[] = await resp.json();
-      setTests(data);
+      const resp = await api.get('/tests');
+      setTests(resp.data);
     } catch (err: any) {
       setError(err.message || 'Failed to load tests');
     } finally {
@@ -44,12 +43,11 @@ const RecruiterTests: React.FC = () => {
     const applicantIds = prompt('Enter comma-separated applicant IDs:');
     if (!jobId || !applicantIds) return;
     try {
-      const resp = await fetch('/api/recruiters/tests/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testId, jobId, applicantIds: applicantIds.split(',').map(s => s.trim()) }),
+      await api.post('/recruiters/tests/assign', { 
+        testId, 
+        jobId, 
+        applicantIds: applicantIds.split(',').map(s => s.trim()) 
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       alert('Test assigned successfully');
     } catch (err: any) {
       alert(err.message || 'Assignment failed');
@@ -58,10 +56,8 @@ const RecruiterTests: React.FC = () => {
 
   const viewResults = async (testId: string) => {
     try {
-      const resp = await fetch(`/api/tests/${testId}/results`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: ResultItem[] = await resp.json();
-      setResultsMap(prev => ({ ...prev, [testId]: data }));
+      const resp = await api.get(`/tests/${testId}/results`);
+      setResultsMap(prev => ({ ...prev, [testId]: resp.data }));
     } catch (err: any) {
       alert(err.message || 'Unable to fetch results');
     }

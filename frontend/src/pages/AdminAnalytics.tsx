@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 import {
   LineChart,
   Line,
@@ -151,10 +152,8 @@ const AdminAnalytics: React.FC = () => {
       params.append('timeRange', timeRange);
       if (jobCategoryFilter) params.append('jobCategory', jobCategoryFilter);
       if (collegeFilter) params.append('college', collegeFilter);
-      const resp = await fetch(`/api/admin/analytics?${params.toString()}`);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data: AnalyticsData = await resp.json();
-      setAnalytics(data);
+      const resp = await api.get(`/admin/analytics?${params.toString()}`);
+      setAnalytics(resp.data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch analytics');
     } finally {

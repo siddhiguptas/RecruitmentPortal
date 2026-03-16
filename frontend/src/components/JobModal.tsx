@@ -17,7 +17,7 @@ export const JobModal: React.FC<JobModalProps> = ({ isOpen, onClose, onSubmit, i
     company: "",
     location: "",
     salary: "",
-    jobType: "Full-time",
+    jobType: "full-time",
     description: "",
     requirements: "",
   });
@@ -40,7 +40,7 @@ export const JobModal: React.FC<JobModalProps> = ({ isOpen, onClose, onSubmit, i
         company: "",
         location: "",
         salary: "",
-        jobType: "Full-time",
+        jobType: "full-time",
         description: "",
         requirements: "",
       });
@@ -117,10 +117,9 @@ export const JobModal: React.FC<JobModalProps> = ({ isOpen, onClose, onSubmit, i
               value={formData.jobType}
               onChange={(e) => setFormData({ ...formData, jobType: e.target.value })}
             >
-              <option>Full-time</option>
-              <option>Part-time</option>
-              <option>Contract</option>
-              <option>Internship</option>
+              <option value="full-time">Full-time</option>
+              <option value="part-time">Part-time</option>
+              <option value="internship">Internship</option>
             </select>
           </div>
 

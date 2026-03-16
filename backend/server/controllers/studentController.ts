@@ -7,7 +7,7 @@ import { NotificationService } from "../services/notificationService";
 import { mlService } from "../services/mlService";
 import { AuthRequest } from "../types";
 
-const toPublicResumeUrl = (req: AuthRequest, resumeValue?: string): string | undefined => {
+const toPublicResumeUrl = (req: AuthRequest, resumeValue?: string | null): string | undefined => {
   if (!resumeValue) return undefined;
   if (/^https?:\/\//i.test(resumeValue)) return resumeValue;
 

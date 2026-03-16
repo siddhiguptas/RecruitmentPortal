@@ -17,6 +17,11 @@ export const recruiterService = {
     return response.data;
   },
 
+  getAllApplications: async (): Promise<Application[]> => {
+    const response = await api.get("/recruiters/applications");
+    return response.data;
+  },
+
   rankCandidates: async (jobId: string): Promise<any[]> => {
     const response = await api.post(`/recruiters/jobs/${jobId}/rank`);
     return response.data;

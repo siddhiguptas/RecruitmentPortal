@@ -6,7 +6,7 @@ import { Application } from "../models/Application";
 import { StudentProfile } from "../models/StudentProfile";
 import { mlService } from "../services/mlService";
 
-const toPublicResumeUrl = (req: Request, resumeValue?: string): string | undefined => {
+const toPublicResumeUrl = (req: Request, resumeValue?: string | null): string | undefined => {
   if (!resumeValue) return undefined;
   if (/^https?:\/\//i.test(resumeValue)) return resumeValue;
 
@@ -60,9 +60,20 @@ export const verifyStudentEligibility = async (req: Request, res: Response) => {
 
 export const predictStudentPlacement = async (req: Request, res: Response) => {
   const { studentId } = req.params;
-  const studentData = req.body;
+  let studentData = req.body;
 
   try {
+    const profile = await StudentProfile.findOne({ user: studentId });
+    if (profile) {
+      studentData = {
+        cgpa: profile.cgpa || studentData.cgpa,
+        skills: profile.skills && profile.skills.length > 0 ? profile.skills : studentData.skills,
+        experience_years: profile.parsedResumeData?.experience_years || 0,
+        internships: profile.experience ? profile.experience.length : 0,
+        projects: profile.parsedResumeData?.projects?.length || 0,
+      };
+    }
+
     const prediction = await mlService.predictPlacement(studentData);
 
     // Optionally update student profile with prediction

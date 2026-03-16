@@ -49,6 +49,7 @@ const OnlineTest = () => {
   const [alerts, setAlerts] = useState<string[]>([]);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -170,26 +171,37 @@ const OnlineTest = () => {
   const fetchTest = async () => {
     setLoading(true);
     try {
-      // Try to fetch from API, fallback to mock
-      const data = await getTestDetails(testId || "test-1").catch(() => mockTest);
+      const data = await getTestDetails(testId || "test-1");
       const normalized = data?.test ? normalizeTest(data.test) : normalizeTest(data);
       setTest(normalized);
       setTimeLeft(normalized.duration * 60);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      if (err.response?.status === 400 && err.response?.data?.message?.includes("already completed")) {
+        setStatus("submitted");
+        return;
+      }
+      console.warn(err);
+      // Fallback to mock on other errors
+      const normalized = normalizeTest(mockTest);
+      setTest(normalized);
+      setTimeLeft(normalized.duration * 60);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (status === "in-progress" && videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      setIsCameraActive(true);
+    }
+  }, [status, stream]);
+
   const startExam = async () => {
     try {
       // Request camera access
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraActive(true);
-      }
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setStream(mediaStream);
 
       try {
         const result = await startTest(testId || "test-1");
@@ -246,8 +258,8 @@ const OnlineTest = () => {
     }
   };
 
-  const captureAndSendFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
+  const captureAndSendFrame = () => {
+    if (!videoRef.current || !canvasRef.current || !videoRef.current.srcObject) return;
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -261,7 +273,7 @@ const OnlineTest = () => {
       
       socketService.emit("video_frame", base64Frame);
     }
-  }, [testId, isCameraActive]);
+  };
 
   const handleOptionSelect = (questionId: string, optionIdx: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionIdx }));
@@ -308,6 +320,27 @@ const OnlineTest = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
         <p className="text-slate-500 font-medium">Preparing your assessment...</p>
+      </div>
+    );
+  }
+
+  if (status === "submitted") {
+    return (
+      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
+        <motion.div 
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8"
+        >
+          <CheckCircle2 size={48} />
+        </motion.div>
+        <h1 className="text-3xl font-bold text-slate-900">Assessment Submitted!</h1>
+        <p className="text-slate-500">Your test has been successfully submitted for review. The recruiter will be notified of your performance and proctoring report.</p>
+        <div className="pt-8">
+          <Button onClick={() => navigate("/student/dashboard")} variant="outline">
+            Return to Dashboard
+          </Button>
+        </div>
       </div>
     );
   }
@@ -368,26 +401,6 @@ const OnlineTest = () => {
     );
   }
 
-  if (status === "submitted") {
-    return (
-      <div className="max-w-xl mx-auto text-center py-16 space-y-6">
-        <motion.div 
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8"
-        >
-          <CheckCircle2 size={48} />
-        </motion.div>
-        <h1 className="text-3xl font-bold text-slate-900">Assessment Submitted!</h1>
-        <p className="text-slate-500">Your test has been successfully submitted for review. The recruiter will be notified of your performance and proctoring report.</p>
-        <div className="pt-8">
-          <Button onClick={() => navigate("/student/dashboard")} variant="outline">
-            Return to Dashboard
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const currentQuestion = test.questions[currentQuestionIdx];
 

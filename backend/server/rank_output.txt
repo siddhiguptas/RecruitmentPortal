@@ -1,0 +1,51 @@
+[dotenv@17.3.1] injecting env (10) from ..\.env -- tip: ΓÜí∩╕Å secrets for agents: https://dotenvx.com/as2
+Connected to MongoDB
+Found Job: SDE, Candidates: 1
+Sending payload to ML engine: [
+  {
+    "studentId": "69b7b4c8d158859393b6cb24",
+    "name": "Raghav Dolyar",
+    "skills": [
+      "algorithms",
+      "api",
+      "c",
+      "c++",
+      "computer vision",
+      "css",
+      "data structures",
+      "git",
+      "github",
+      "go",
+      "html",
+      "java",
+      "javascript",
+      "linux",
+      "machine learning",
+      "matplotlib",
+      "node",
+      "numpy",
+      "pandas",
+      "python",
+      "r",
+      "scala",
+      "sql"
+    ],
+    "experience_years": 0,
+    "cgpa": 9.85
+  }
+]
+Returned ranked candidates from ML engine:
+[
+  {
+    "studentId": "69b7b4c8d158859393b6cb24",
+    "name": "Raghav Dolyar",
+    "match_score": 0.18,
+    "skill_score": 0,
+    "experience_score": 0.2,
+    "cgpa_score": 1,
+    "matched_skills": [],
+    "missing_skills": [],
+    "recommendation": "Low Match - Consider Other Options"
+  }
+]
+Updated App (69b7bbb4d158859393b6cc81) matchScore to 18%

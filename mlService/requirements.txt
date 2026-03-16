@@ -11,3 +11,6 @@ PyPDF2
 pydantic
 python-multipart
 spacy
+pytesseract
+pdf2image
+Pillow
