@@ -17,20 +17,30 @@ try:
     from pdf2image import convert_from_bytes
     from PIL import Image
     
-    # Get paths from environment variables or use defaults
-    tesseract_path = os.environ.get('TESSERACT_PATH', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
-    poppler_path = os.environ.get('POPPLER_PATH', r'C:\Program Files\poppler-25.12.0\Library\bin')
-    
-    # Add Poppler to PATH if it exists
-    if os.path.exists(poppler_path):
+    tesseract_path = os.environ.get('TESSERACT_PATH')
+    poppler_path = os.environ.get('POPPLER_PATH')
+
+    # Handle OS-specific defaults
+    if os.name == "nt":
+        # Windows
+        if not tesseract_path:
+            tesseract_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    else:
+        # Linux (Render / Docker)
+        if not tesseract_path:
+            tesseract_path = "/usr/bin/tesseract"
+
+    # Set Poppler path only if provided (Windows case)
+    if poppler_path and os.path.exists(poppler_path):
         os.environ['PATH'] = poppler_path + os.pathsep + os.environ.get('PATH', '')
-    
-    # Check if file exists
-    if not os.path.exists(tesseract_path):
+
+    # Configure Tesseract
+    if tesseract_path and os.path.exists(tesseract_path):
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+        OCR_AVAILABLE = True
+    else:
         OCR_ERROR = f"Tesseract not found at: {tesseract_path}"
         print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
-    else:
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
         
         # Test if Tesseract actually works
         try:
