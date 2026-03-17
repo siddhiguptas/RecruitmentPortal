@@ -49,7 +49,7 @@ def get_ocr_status():
     return {
         "ocr_available": OCR_AVAILABLE,
         "error": OCR_ERROR,
-        "tesseract_path": r'C:\Program Files\Tesseract-OCR\tesseract.exe' if OCR_AVAILABLE else None
+        "tesseract_path": pytesseract.pytesseract.tesseract_cmd if OCR_AVAILABLE else None
     }
 
 @app.post("/test-ocr")
