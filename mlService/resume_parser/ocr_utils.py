@@ -151,3 +151,5 @@ def preprocess_ocr_text(text: str) -> str:
     text = re.sub(r' +', ' ', text)
     
     return text.strip()
+
+TESSERACT_CMD = pytesseract.pytesseract.tesseract_cmd if OCR_AVAILABLE else None
