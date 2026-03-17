@@ -3,9 +3,7 @@ import { motion } from "motion/react";
 import { 
   Users, 
   Briefcase, 
-  FileCheck, 
-  TrendingUp, 
-  BarChart3, 
+  FileCheck,  
   Search, 
   Filter, 
   MoreVertical, 
@@ -30,13 +28,13 @@ import {
   Area
 } from "recharts";
 import { adminService } from "../services/adminService";
-import { Analytics, StudentProfile, Job } from "../types";
+import { StudentProfile, Job } from "../types";
 import { Button } from "../components/Button";
 import { cn, formatDate } from "../utils";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [view, setView] = useState<"overview" | "students" | "recruiters" | "analytics" | "prediction">("overview");
@@ -89,31 +87,25 @@ const AdminDashboard = () => {
     );
   }
 
-  // Mock data for charts
   const placementTrends = [
-    { month: "Jan", placements: 45 },
-    { month: "Feb", placements: 52 },
-    { month: "Mar", placements: 48 },
-    { month: "Apr", placements: 61 },
-    { month: "May", placements: 55 },
-    { month: "Jun", placements: 67 },
+    { month: "Oct", placements: 5 },
+    { month: "Nov", placements: 12 },
+    { month: "Dec", placements: 18 },
+    { month: "Jan", placements: 24 },
+    { month: "Feb", placements: 30 },
+    { month: "Mar", placements: 45 },
   ];
 
   const skillDemand = [
     { name: "React", value: 85 },
-    { name: "Node.js", value: 72 },
-    { name: "Python", value: 68 },
-    { name: "AWS", value: 54 },
-    { name: "SQL", value: 49 },
+    { name: "Node.js", value: 70 },
+    { name: "Python", value: 65 },
+    { name: "MongoDB", value: 50 },
+    { name: "TypeScript", value: 45 },
+    { name: "Java", value: 30 },
   ];
 
-  const topCompanies = [
-    { name: "Google", jobs: 12 },
-    { name: "Microsoft", jobs: 15 },
-    { name: "Amazon", jobs: 10 },
-    { name: "Meta", jobs: 8 },
-    { name: "Apple", jobs: 6 },
-  ];
+  const topCompanies = analytics?.topRecruiters?.map((r: any) => ({ name: r.company, jobs: r.jobsPosted })) || [];
 
   const predictionPercent = predictionData
     ? Math.max(
@@ -155,28 +147,6 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Admin Dashboard</h1>
           <p className="text-slate-500 mt-1">Platform-wide overview and management.</p>
         </div>
-        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200">
-          {[
-            { id: "overview", label: "Overview", icon: <BarChart3 size={16} /> },
-            { id: "students", label: "Students", icon: <Users size={16} /> },
-            { id: "recruiters", label: "Recruiters", icon: <Briefcase size={16} /> },
-            { id: "analytics", label: "Analytics", icon: <TrendingUp size={16} /> },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setView(tab.id as any)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                view === tab.id 
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-200" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {view === "overview" && (
@@ -184,11 +154,11 @@ const AdminDashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
-              { label: "Total Students", value: analytics?.totalStudents || 0, icon: <Users className="text-blue-600" />, color: "bg-blue-50", trend: "+12%", up: true },
-              { label: "Recruiters", value: analytics?.totalRecruiters || 0, icon: <Briefcase className="text-emerald-600" />, color: "bg-emerald-50", trend: "+5%", up: true },
-              { label: "Jobs Posted", value: analytics?.totalJobs || 0, icon: <FileCheck className="text-purple-600" />, color: "bg-purple-50", trend: "+18%", up: true },
-              { label: "Applications", value: analytics?.totalApplications || 0, icon: <Zap className="text-amber-600" />, color: "bg-amber-50", trend: "+24%", up: true },
-              { label: "Placements", value: analytics?.placedStudents || 0, icon: <Target className="text-rose-600" />, color: "bg-rose-50", trend: "+8%", up: true },
+              { label: "Total Students", value: analytics?.stats?.totalStudents || 0, icon: <Users className="text-blue-600" />, color: "bg-blue-50", trend: `+${analytics?.stats?.growthStudents || 0}%`, up: true },
+              { label: "Recruiters", value: analytics?.stats?.totalRecruiters || 0, icon: <Briefcase className="text-emerald-600" />, color: "bg-emerald-50", trend: `+${analytics?.stats?.growthRecruiters || 0}%`, up: true },
+              { label: "Jobs Posted", value: analytics?.stats?.totalJobs || 0, icon: <FileCheck className="text-purple-600" />, color: "bg-purple-50", trend: `+${analytics?.stats?.growthJobs || 0}%`, up: true },
+              { label: "Applications", value: analytics?.stats?.totalApplications || 0, icon: <Zap className="text-amber-600" />, color: "bg-amber-50", trend: `+${analytics?.stats?.growthApplications || 0}%`, up: true },
+              { label: "Placements", value: analytics?.stats?.totalPlacements || 0, icon: <Target className="text-rose-600" />, color: "bg-rose-50", trend: `+${analytics?.stats?.growthPlacements || 0}%`, up: true },
             ].map((stat, i) => (
               <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-4">
@@ -233,7 +203,6 @@ const AdminDashboard = () => {
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
                     <Tooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      cursor={{ stroke: '#10b981', strokeWidth: 2 }}
                     />
                     <Area type="monotone" dataKey="placements" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPlacements)" />
                   </AreaChart>
@@ -293,7 +262,7 @@ const AdminDashboard = () => {
             <div className="bg-white rounded-3xl border border-slate-200 p-6">
               <h3 className="font-bold text-slate-900 mb-6">Top Recruiting Companies</h3>
               <div className="space-y-6">
-                {topCompanies.map((company, i) => (
+                {topCompanies.map((company: any, i: number) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">

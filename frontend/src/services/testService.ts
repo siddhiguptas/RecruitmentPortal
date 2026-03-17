@@ -181,3 +181,17 @@ export const getOngoingAttempts = async (): Promise<TestAttempt[]> => {
     throw error;
   }
 };
+
+/**
+ * Create a new test (Recruiter only)
+ */
+export const createTest = async (testData: any): Promise<Test> => {
+  try {
+    const response = await api.post("/tests", testData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating test:", error);
+    throw error;
+  }
+};
+

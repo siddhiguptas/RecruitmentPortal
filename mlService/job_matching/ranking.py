@@ -11,20 +11,20 @@ def rank_jobs_for_student(student_profile, jobs):
     for job in jobs:
 
         result = calculate_match(
-            resume_skills=student_profile.skills or [],
-            job_description=job.description or "",
-            experience_years=student_profile.experience_years or 0,
-            cgpa=student_profile.cgpa
+            resume_skills=student_profile.get("skills", []),
+            job_description=job.get("description", ""),
+            experience_years=student_profile.get("experience_years", 0),
+            cgpa=student_profile.get("cgpa")
         )
 
         ranked_jobs.append({
-            "jobId": job.jobId,
-            "job_title": job.title or "Unknown",
-            "match_score": result["match_score"],
+            "jobId": job.get("jobId"),
+            "job_title": job.get("title", "Unknown"),
+            "match_score": result.get("match_score", 0),
             "skill_score": result.get("skill_score", 0),
             "experience_score": result.get("experience_score", 0),
             "cgpa_score": result.get("cgpa_score", 0),
-            "recommendation": result["recommendation"]
+            "recommendation": result.get("recommendation", "")
         })
 
     ranked_jobs.sort(
@@ -45,22 +45,22 @@ def rank_candidates_for_job(job, candidates):
     for student in candidates:
 
         result = calculate_match(
-            resume_skills=student.skills or [],
-            job_description=job.description or "",
-            experience_years=student.experience_years or 0,
-            cgpa=student.cgpa
+            resume_skills=student.get("skills", []),
+            job_description=job.get("description", ""),
+            experience_years=student.get("experience_years", 0),
+            cgpa=student.get("cgpa")
         )
 
         ranked_candidates.append({
-            "studentId": student.studentId,
-            "name": student.name or "Unknown",
-            "match_score": result["match_score"],
+            "studentId": student.get("studentId"),
+            "name": student.get("name", "Unknown"),
+            "match_score": result.get("match_score", 0),
             "skill_score": result.get("skill_score", 0),
             "experience_score": result.get("experience_score", 0),
             "cgpa_score": result.get("cgpa_score", 0),
             "matched_skills": result.get("matched_skills", []),
             "missing_skills": result.get("missing_skills", []),
-            "recommendation": result["recommendation"]
+            "recommendation": result.get("recommendation", "")
         })
 
     ranked_candidates.sort(

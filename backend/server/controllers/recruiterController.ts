@@ -43,6 +43,32 @@ export const getMyJobs = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const updateJob = async (req: AuthRequest, res: Response) => {
+  const { jobId } = req.params;
+  try {
+    const job = await Job.findOneAndUpdate(
+      { _id: jobId, recruiter: req.user._id },
+      req.body,
+      { new: true }
+    );
+    if (!job) return res.status(404).json({ message: "Job not found or unauthorized" });
+    res.json(job);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteJob = async (req: AuthRequest, res: Response) => {
+  const { jobId } = req.params;
+  try {
+    const job = await Job.findOneAndDelete({ _id: jobId, recruiter: req.user._id });
+    if (!job) return res.status(404).json({ message: "Job not found or unauthorized" });
+    res.json({ message: "Job deleted successfully" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getApplicants = async (req: AuthRequest, res: Response) => {
   const { jobId } = req.params;
 

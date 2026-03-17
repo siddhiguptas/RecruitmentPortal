@@ -5,7 +5,7 @@ import { TestAttempt } from "../models/TestAttempt";
 import { AuthRequest } from "../types";
 
 /**
- * Get all available tests
+ * Get all available tests (for students)
  */
 export const getAvailableTests = async (req: AuthRequest, res: Response) => {
   try {
@@ -22,6 +22,19 @@ export const getAvailableTests = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Get tests created by the recruiter
+ */
+export const getRecruiterTests = async (req: AuthRequest, res: Response) => {
+  try {
+    const tests = await Test.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
+    res.json(tests);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 /**
  * Get test details by ID with questions (without correct answers)
@@ -465,3 +478,20 @@ export const autoSubmitTest = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * Create a new test (Recruiter only)
+ */
+export const createTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const testData = {
+      ...req.body,
+      createdBy: req.user._id
+    };
+
+    const test = await Test.create(testData);
+    res.status(201).json(test);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

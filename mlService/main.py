@@ -154,24 +154,31 @@ def match_job(data: JobMatchRequest):
 
 @app.post("/recommend-jobs", response_model=JobRankingResponse)
 def recommend_jobs(data: JobRankingRequest):
-    # Validate student profile
-    student = data.student
-    valid_cgpa = validate_cgpa(student.cgpa)
-    valid_experience = validate_experience_years(student.experience_years)
-    
-    student_profile = {
-        "skills": student.skills,
-        "experience_years": valid_experience,
-        "cgpa": valid_cgpa
-    }
-    print(f"DEBUG: Input Student Profile: {student_profile}")
+    try:
+        # Validate student profile
+        student = data.student
+        valid_cgpa = validate_cgpa(student.cgpa)
+        valid_experience = validate_experience_years(student.experience_years)
+        
+        student_profile = {
+            "skills": student.skills,
+            "experience_years": valid_experience,
+            "cgpa": valid_cgpa
+        }
+        print(f"DEBUG: Input Student Profile: {student_profile}")
 
-    ranked = rank_jobs_for_student(
-        student_profile=student_profile,
-        jobs=[job.dict() for job in data.jobs]
-    )
+        ranked = rank_jobs_for_student(
+            student_profile=student_profile,
+            jobs=[job.dict() for job in data.jobs]
+        )
 
-    return {"jobs": ranked}
+        return {"jobs": ranked}
+    except Exception as e:
+        import traceback
+        import sys
+        print(f"ERROR in /recommend-jobs: {str(e)}", file=sys.stderr)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/rank-candidates", response_model=CandidateRankingResponse)
 def rank_candidates(data: CandidateRankingRequest):

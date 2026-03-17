@@ -165,9 +165,21 @@ export const getRecommendedJobs = async (req: AuthRequest, res: Response) => {
     const parsedCgpa = profile.parsedResumeData?.cgpa;
     studentProfileData.cgpa = parsedCgpa || profileCgpa;
 
-    // If no skills at all, return empty array
+    const getFallbackJobs = async (message: string) => {
+      const fallbackJobs = await Job.find({ isActive: true })
+        .sort("-createdAt")
+        .limit(10);
+        
+      return fallbackJobs.map((job) => ({
+        ...job.toObject(),
+        matchScore: 0,
+        recommendation: message,
+      }));
+    };
+
+    // If no skills at all, return the 10 most recent active jobs as a fallback
     if (studentProfileData.skills.length === 0) {
-      return res.json([]);
+      return res.json(await getFallbackJobs("Upload your resume or add skills for personalized recommendations."));
     }
 
     const jobs = await Job.find({ isActive: true });
@@ -176,6 +188,11 @@ export const getRecommendedJobs = async (req: AuthRequest, res: Response) => {
     }
 
     const recommendations = await mlService.recommendJobs(studentProfileData, jobs);
+    
+    if (!recommendations || recommendations.length === 0) {
+      return res.json(await getFallbackJobs("Personalized recommendations temporarily unavailable. Showing newest jobs."));
+    }
+
     const jobsById = new Map(jobs.map((job) => [job._id.toString(), job]));
 
     const enriched = recommendations

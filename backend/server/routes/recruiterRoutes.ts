@@ -10,7 +10,9 @@ import {
   getProfile,
   updateProfile,
   uploadProfilePhoto,
-  uploadLogo
+  uploadLogo,
+  updateJob,
+  deleteJob
 } from "../controllers/recruiterController";
 import { protect, authorize } from "../middleware/authMiddleware";
 import { upload } from "../middleware/uploadMiddleware";
@@ -22,6 +24,8 @@ router.use(authorize("recruiter"));
 
 router.post("/jobs", postJob);
 router.get("/jobs", getMyJobs);
+router.put("/jobs/:jobId", updateJob);
+router.delete("/jobs/:jobId", deleteJob);
 router.get("/jobs/:jobId/applicants", getApplicants);
 
 // return all applications for jobs owned by the authenticated recruiter

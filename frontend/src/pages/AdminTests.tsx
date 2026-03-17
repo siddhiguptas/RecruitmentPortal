@@ -125,237 +125,8 @@ const ResultsModal: React.FC<{ results: TestResult[]; onClose: () => void }> = (
   );
 };
 
-// form for create/edit tests
-const TestFormModal: React.FC<{
-  existing?: AdminTest;
-  onSave: (data: any) => void;
-  onClose: () => void;
-}> = ({ existing, onSave, onClose }) => {
-  const [title, setTitle] = useState(existing?.title || "");
-  const [type, setType] = useState<"MCQ" | "Coding" | "Mixed">(
-    existing?.type || "MCQ"
-  );
-  const [duration, setDuration] = useState(existing?.duration || 0);
-  const [difficulty, setDifficulty] = useState<"Easy" | "Medium" | "Hard">(
-    existing?.difficulty || "Easy"
-  );
-  const [jobRole, setJobRole] = useState(existing?.jobRole || "");
-  const [questions, setQuestions] = useState<any[]>(
-    existing?.questions ? [...existing.questions] : []
-  );
+// removed TestFormModal
 
-  const addQuestion = () => {
-    setQuestions((q) => [
-      ...q,
-      {
-        id: Date.now() + Math.random(),
-        qType: "MCQ",
-        text: "",
-        options: ["", "", "", ""],
-        correct: 0,
-        marks: 1,
-        // coding fields
-        statement: "",
-        examples: "",
-        testCases: "",
-        timeLimit: 1,
-        memoryLimit: 64,
-        languages: "",
-      },
-    ]);
-  };
-
-  const updateQuestion = (idx: number, field: string, value: any) => {
-    setQuestions((qs) => {
-      const copy = [...qs];
-      copy[idx] = { ...copy[idx], [field]: value };
-      return copy;
-    });
-  };
-
-  const removeQuestion = (idx: number) => {
-    setQuestions((qs) => qs.filter((_, i) => i !== idx));
-  };
-
-  const submit = () => {
-    const payload: any = {
-      title,
-      type,
-      duration,
-      difficulty,
-      jobRole,
-      questions,
-    };
-    if (existing) payload._id = existing._id;
-    onSave(payload);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white w-11/12 md:w-3/4 lg:w-2/3 p-6 rounded-lg overflow-auto max-h-full relative">
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-600 hover:text-gray-800">✕</button>
-        <h2 className="text-xl font-semibold mb-4">{existing ? "Edit" : "Create"} Test</h2>
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
-            className="border p-2 rounded w-full"
-          />
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as any)}
-            className="border p-2 rounded w-full"
-          >
-            <option value="MCQ">MCQ</option>
-            <option value="Coding">Coding</option>
-            <option value="Mixed">Mixed</option>
-          </select>
-          <input
-            type="number"
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-            placeholder="Duration (minutes)"
-            className="border p-2 rounded w-full"
-          />
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as any)}
-            className="border p-2 rounded w-full"
-          >
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </select>
-          <input
-            type="text"
-            value={jobRole}
-            onChange={(e) => setJobRole(e.target.value)}
-            placeholder="Job Role"
-            className="border p-2 rounded w-full"
-          />
-          <div>
-            <h3 className="font-semibold mb-2">Questions</h3>
-            {questions.map((q, idx) => (
-              <div key={q.id} className="border p-2 mb-2 rounded">
-                <div className="flex justify-between items-center">
-                  <select
-                    value={q.qType}
-                    onChange={(e) => updateQuestion(idx, "qType", e.target.value)}
-                    className="border p-1 rounded"
-                  >
-                    <option value="MCQ">MCQ</option>
-                    <option value="Coding">Coding</option>
-                  </select>
-                  <button
-                    onClick={() => removeQuestion(idx)}
-                    className="text-red-600 text-sm"
-                  >
-                    Remove
-                  </button>
-                </div>
-                {q.qType === "MCQ" && (
-                  <div className="space-y-1 mt-1">
-                    <input
-                      type="text"
-                      placeholder="Question text"
-                      value={q.text}
-                      onChange={(e) => updateQuestion(idx, "text", e.target.value)}
-                      className="border p-1 rounded w-full"
-                    />
-                    {q.options.map((opt: string, j: number) => (
-                      <input
-                        key={j}
-                        type="text"
-                        placeholder={`Option ${j + 1}`}
-                        value={opt}
-                        onChange={(e) => {
-                          const arr = [...q.options];
-                          arr[j] = e.target.value;
-                          updateQuestion(idx, "options", arr);
-                        }}
-                        className="border p-1 rounded w-full"
-                      />
-                    ))}
-                    <input
-                      type="number"
-                      placeholder="Correct option index (0-3)"
-                      value={q.correct}
-                      onChange={(e) => updateQuestion(idx, "correct", Number(e.target.value))}
-                      className="border p-1 rounded w-full"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Marks"
-                      value={q.marks}
-                      onChange={(e) => updateQuestion(idx, "marks", Number(e.target.value))}
-                      className="border p-1 rounded w-full"
-                    />
-                  </div>
-                )}
-                {q.qType === "Coding" && (
-                  <div className="space-y-1 mt-1">
-                    <textarea
-                      placeholder="Problem statement"
-                      value={q.statement}
-                      onChange={(e) => updateQuestion(idx, "statement", e.target.value)}
-                      className="border p-1 rounded w-full"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Examples"
-                      value={q.examples}
-                      onChange={(e) => updateQuestion(idx, "examples", e.target.value)}
-                      className="border p-1 rounded w-full"
-                    />
-                    <textarea
-                      placeholder="Test cases"
-                      value={q.testCases}
-                      onChange={(e) => updateQuestion(idx, "testCases", e.target.value)}
-                      className="border p-1 rounded w-full"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Time limit (sec)"
-                      value={q.timeLimit}
-                      onChange={(e) => updateQuestion(idx, "timeLimit", Number(e.target.value))}
-                      className="border p-1 rounded w-full"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Memory limit (MB)"
-                      value={q.memoryLimit}
-                      onChange={(e) => updateQuestion(idx, "memoryLimit", Number(e.target.value))}
-                      className="border p-1 rounded w-full"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Languages (comma separated)"
-                      value={q.languages}
-                      onChange={(e) => updateQuestion(idx, "languages", e.target.value)}
-                      className="border p-1 rounded w-full"
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-            <button
-              onClick={addQuestion}
-              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm"
-            >
-              Add Question
-            </button>
-          </div>
-          <div className="flex justify-end space-x-2 mt-4">
-            <button onClick={onClose} className="px-4 py-2 border rounded bg-gray-100">Cancel</button>
-            <button onClick={submit} className="px-4 py-2 bg-green-600 text-white rounded">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const AdminTests: React.FC = () => {
   const [tests, setTests] = useState<AdminTest[]>([]);
@@ -374,8 +145,7 @@ const AdminTests: React.FC = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
-  const [showForm, setShowForm] = useState(false);
-  const [editTest, setEditTest] = useState<AdminTest | null>(null);
+
 
   const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -464,13 +234,7 @@ const AdminTests: React.FC = () => {
         setConfirmMessage("This will permanently delete the test. Continue?");
         setPendingId(id);
         return;
-      } else if (action === "edit") {
-        const t = tests.find((x) => x._id === id);
-        if (t) {
-          setEditTest(t);
-          setShowForm(true);
-        }
-        return;
+
       }
       // refresh list after simple actions
       const updated = await adminService.getAllTests();
@@ -501,32 +265,12 @@ const AdminTests: React.FC = () => {
     setConfirmMessage(null);
   };
 
-  const handleFormSave = async (data: any) => {
-    try {
-      if (editTest) {
-        await adminService.updateTest(editTest._id, data);
-      } else {
-        await adminService.createTest(data);
-      }
-      const updated = await adminService.getAllTests();
-      setTests(updated as any);
-      setShowForm(false);
-      setEditTest(null);
-    } catch (e: any) {
-      alert(e.message || "Save failed");
-    }
-  };
+
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Manage Tests</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          Create Test
-        </button>
       </div>
 
       {loading && <p>Loading tests...</p>}
@@ -630,7 +374,6 @@ const AdminTests: React.FC = () => {
                 <td className="p-2 space-x-1">
                   <button onClick={() => handleAction("details", t._id)} className="text-blue-600 text-sm">Details</button>
                   <button onClick={() => handleAction("results", t._id)} className="text-purple-600 text-sm">Results</button>
-                  <button onClick={() => handleAction("edit", t._id)} className="text-green-600 text-sm">Edit</button>
                   {t.status === "Active" ? (
                     <button onClick={() => handleAction("deactivate", t._id)} className="text-yellow-600 text-sm">Deactivate</button>
                   ) : (
@@ -648,7 +391,6 @@ const AdminTests: React.FC = () => {
       {modalLoading && <p>Loading results...</p>}
       {modalError && <p className="text-red-600">{modalError}</p>}
       {results !== null && <ResultsModal results={results} onClose={() => setResults(null)} />}
-      {showForm && <TestFormModal existing={editTest || undefined} onSave={handleFormSave} onClose={() => { setShowForm(false); setEditTest(null); }} />}
       {confirmMessage && <ConfirmModal message={confirmMessage} onConfirm={performPending} onCancel={cancelPending} />}
     </div>
   );

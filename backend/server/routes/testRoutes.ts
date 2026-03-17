@@ -9,6 +9,8 @@ import {
   getAttemptResult,
   getOngoingAttempts,
   autoSubmitTest,
+  createTest,
+  getRecruiterTests,
 } from "../controllers/testController";
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -17,8 +19,14 @@ const router = express.Router();
 router.use(protect);
 router.use(authorize("student", "recruiter", "admin"));
 
-// Get all available tests
+// Get all available tests (for students)
 router.get("/", getAvailableTests);
+
+// Get recruiter tests
+router.get("/recruiter", authorize("recruiter"), getRecruiterTests);
+
+// Create a new test (Recruiter only)
+router.post("/", authorize("recruiter"), createTest);
 
 // Get test history and results
 router.get("/results/all", getTestResults);

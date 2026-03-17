@@ -12,6 +12,15 @@ export const recruiterService = {
     return response.data;
   },
 
+  updateJob: async (jobId: string, jobData: any): Promise<Job> => {
+    const response = await api.put(`/recruiters/jobs/${jobId}`, jobData);
+    return response.data;
+  },
+
+  deleteJob: async (jobId: string): Promise<void> => {
+    await api.delete(`/recruiters/jobs/${jobId}`);
+  },
+
   getApplicants: async (jobId: string): Promise<Application[]> => {
     const response = await api.get(`/recruiters/jobs/${jobId}/applicants`);
     return response.data;

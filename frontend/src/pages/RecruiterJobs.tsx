@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Job } from '../types';
 import { recruiterService } from '../services/recruiterService';
-import api from '../services/api';
+import { X } from 'lucide-react';
 
 const RecruiterJobs: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -9,6 +9,9 @@ const RecruiterJobs: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed'>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Job>>({});
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -30,7 +33,7 @@ const RecruiterJobs: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this job?')) return;
     try {
-      await api.delete(`/recruiters/jobs/${id}`);
+      await recruiterService.deleteJob(id);
       setJobs(jobs.filter((j) => j._id !== id));
     } catch (err: any) {
       alert(err.message || 'Delete failed');
@@ -39,7 +42,7 @@ const RecruiterJobs: React.FC = () => {
 
   const handleClose = async (id: string) => {
     try {
-      await api.put(`/recruiters/jobs/${id}`, { isActive: false });
+      await recruiterService.updateJob(id, { isActive: false });
       setJobs(jobs.map((j) => (j._id === id ? { ...j, isActive: false } : j)));
     } catch (err: any) {
       alert(err.message || 'Unable to close job');
@@ -47,14 +50,33 @@ const RecruiterJobs: React.FC = () => {
   };
 
   const handleEdit = (j: Job) => {
-    // navigate to edit page or open modal
-    // for now alert
-    alert('Edit job: ' + j.title);
+    setEditingJob(j);
+    setEditFormData({
+      title: j.title,
+      company: j.company,
+      location: j.location,
+      salary: j.salary,
+      jobType: j.jobType,
+      description: j.description,
+      requirements: j.requirements,
+    });
   };
 
-  const handleViewApplicants = (j: Job) => {
-    // route to applicants page
-    window.location.href = `/recruiter/jobs/${j._id}/applicants`;
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingJob) return;
+    try {
+      const updated = await recruiterService.updateJob(editingJob._id, editFormData);
+      setJobs(jobs.map(j => j._id === updated._id ? { ...j, ...updated } : j));
+      setEditingJob(null);
+      setEditFormData({});
+    } catch (err: any) {
+      alert(err.message || 'Update failed');
+    }
+  };
+
+  const handleViewApplicants = () => {
+    window.location.href = `/recruiter/applications`;
   };
 
   const filteredJobs = jobs.filter((j) => {
@@ -130,7 +152,7 @@ const RecruiterJobs: React.FC = () => {
                     Delete
                   </button>
                   <button
-                    onClick={() => handleViewApplicants(j)}
+                    onClick={() => handleViewApplicants()}
                     className="text-green-600 hover:underline"
                   >
                     Applicants
@@ -156,6 +178,115 @@ const RecruiterJobs: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Edit Job Modal */}
+      {editingJob && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <h2 className="text-xl font-bold text-slate-900">Edit Job: {editingJob.title}</h2>
+              <button
+                onClick={() => setEditingJob(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Job Title</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.title || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Company Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.company || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, company: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Location</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.location || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Salary</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.salary || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, salary: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Job Type</label>
+                  <select
+                    value={editFormData.jobType || 'Full-time'}
+                    onChange={(e) => setEditFormData({ ...editFormData, jobType: e.target.value as any })}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                  >
+                    <option value="Full-time">Full-time</option>
+                    <option value="Part-time">Part-time</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Internship">Internship</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">Job Description</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">Requirements</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={(editFormData.requirements || []).join('\n')}
+                  onChange={(e) => setEditFormData({ ...editFormData, requirements: e.target.value.split('\n').filter(Boolean) })}
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingJob(null)}
+                  className="px-6 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
