@@ -13,6 +13,7 @@ from job_matching.ranking import rank_candidates_for_job
 from schemas import CandidateRankingRequest, CandidateRankingResponse
 from resume_parser.ocr_utils import extract_text_with_ocr, preprocess_ocr_text, is_scanned_pdf, OCR_AVAILABLE, OCR_ERROR
 from utils import validate_cgpa, validate_experience_years, validate_email, validate_phone
+from resume_parser.ocr_utils import OCR_AVAILABLE, OCR_ERROR, TESSERACT_CMD
 from predictor import predict_student_placement
 from pydantic import BaseModel
 from typing import Optional, List
@@ -49,7 +50,7 @@ def get_ocr_status():
     return {
         "ocr_available": OCR_AVAILABLE,
         "error": OCR_ERROR,
-        "tesseract_path": r'C:\Program Files\Tesseract-OCR\tesseract.exe' if OCR_AVAILABLE else None
+        "tesseract_path": TESSERACT_CMD
     }
 
 @app.post("/test-ocr")
