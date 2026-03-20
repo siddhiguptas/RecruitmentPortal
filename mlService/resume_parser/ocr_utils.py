@@ -40,21 +40,21 @@ try:
         OCR_AVAILABLE = True
     else:
         OCR_ERROR = f"Tesseract not found at: {tesseract_path}"
-        print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
+        # Silenced: print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
         
         # Test if Tesseract actually works
         try:
             version = pytesseract.get_tesseract_version()
-            print(f"Tesseract version: {version}", file=sys.stderr)
+            # Silenced: print(f"Tesseract version: {version}", file=sys.stderr)
         except Exception as e:
             OCR_ERROR = f"Tesseract test failed: {str(e)}"
-            print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
+            # Silenced: print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
         else:
             OCR_AVAILABLE = True
             
 except ImportError as e:
     OCR_ERROR = f"OCR import failed: {str(e)}"
-    print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
+    # Silenced: print(f"ERROR: {OCR_ERROR}", file=sys.stderr)
     pytesseract = None
     convert_from_bytes = None
     Image = None

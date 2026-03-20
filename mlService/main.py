@@ -1,3 +1,7 @@
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, message=".*Pydantic V1.*")
+warnings.filterwarnings("ignore", module="confection")
+
 from fastapi import FastAPI, UploadFile, File, WebSocket, WebSocketDisconnect
 from resume_parser.parser import extract_resume_data
 from schemas import ProfileData

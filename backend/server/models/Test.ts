@@ -14,6 +14,7 @@ const TestSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     startTime: { type: Date },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    jobs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Job" }],
     questions: [
       {
         questionText: String,

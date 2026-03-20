@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
-import { createTest } from '../services/testService';
+import { createTest, updateTest, deleteTest, assignTestToJob } from '../services/testService';
 
 interface TestItem {
   _id: string;
@@ -69,13 +69,35 @@ const TestFormModal: React.FC<{
   };
 
   const submit = () => {
+    const mappedQuestions = questions.map(q => {
+      if (q.qType === "MCQ") {
+        return {
+          questionText: q.text || q.questionText || "",
+          options: q.options || ["", "", "", ""],
+          correctAnswer: q.correct !== undefined ? q.correct : q.correctAnswer || 0,
+          marks: q.marks || 1
+        };
+      }
+      return {
+        title: q.title || "Coding Problem",
+        description: q.statement || q.description || "",
+        inputFormat: q.inputFormat || "Standard Input",
+        outputFormat: q.outputFormat || "Standard Output",
+        constraints: q.constraints || "",
+        examples: [],
+        marks: q.marks || 10
+      };
+    });
+
     const payload: any = {
       title,
       type,
       duration,
       difficulty,
       jobRole,
-      questions,
+      totalQuestions: mappedQuestions.length,
+      questions: type === "MCQ" || type === "Mixed" ? mappedQuestions : [],
+      codingProblems: type === "Coding" || type === "Mixed" ? mappedQuestions : [],
     };
     if (existing) payload._id = existing._id;
     onSave(payload);
@@ -129,7 +151,7 @@ const TestFormModal: React.FC<{
           <div>
             <h3 className="font-semibold mb-2">Questions</h3>
             {questions.map((q, idx) => (
-              <div key={q.id} className="border p-2 mb-2 rounded">
+              <div key={q._id || q.id || idx} className="border p-2 mb-2 rounded">
                 <div className="flex justify-between items-center">
                   <select
                     value={q.qType}
@@ -254,12 +276,21 @@ const RecruiterTests: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [resultsMap, setResultsMap] = useState<Record<string, ResultItem[]>>({});
   const [showForm, setShowForm] = useState(false);
+  const [editingTest, setEditingTest] = useState<TestItem | undefined>(undefined);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [assignModalTestId, setAssignModalTestId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState("");
 
   const handleFormSave = async (data: any) => {
     try {
-      await createTest(data);
+      if (data._id) {
+        await updateTest(data._id, data);
+      } else {
+        await createTest(data);
+      }
       fetchTests();
       setShowForm(false);
+      setEditingTest(undefined);
     } catch (e: any) {
       alert(e.message || "Save failed");
     }
@@ -278,21 +309,32 @@ const RecruiterTests: React.FC = () => {
     }
   };
 
+  const fetchJobs = async () => {
+    try {
+      const resp = await api.get('/recruiters/jobs');
+      setJobs(resp.data);
+    } catch (err: any) {
+      console.error('Failed to load jobs', err);
+    }
+  };
+
   useEffect(() => {
     fetchTests();
+    fetchJobs();
   }, []);
 
-  const assignTest = async (testId: string) => {
-    const jobId = prompt('Enter job ID to assign the test to:');
-    const applicantIds = prompt('Enter comma-separated applicant IDs:');
-    if (!jobId || !applicantIds) return;
+  const assignTest = (testId: string) => {
+    setAssignModalTestId(testId);
+    setSelectedJobId("");
+  };
+
+  const handleAssignTestConfirm = async () => {
+    if (!selectedJobId || !assignModalTestId) return;
     try {
-      await api.post('/recruiters/tests/assign', { 
-        testId, 
-        jobId, 
-        applicantIds: applicantIds.split(',').map(s => s.trim()) 
-      });
+      await assignTestToJob(assignModalTestId, selectedJobId);
       alert('Test assigned successfully');
+      setAssignModalTestId(null);
+      setSelectedJobId("");
     } catch (err: any) {
       alert(err.message || 'Assignment failed');
     }
@@ -315,12 +357,31 @@ const RecruiterTests: React.FC = () => {
     return { attempts, avg };
   };
 
+  const handleEditClick = (t: TestItem) => {
+    setEditingTest(t);
+    setShowForm(true);
+  };
+
+  const handleDeleteTest = async (testId: string) => {
+    if (!window.confirm("Are you sure you want to delete this test?")) return;
+    try {
+      await deleteTest(testId);
+      alert("Test deleted successfully");
+      fetchTests();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete test");
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Available Tests</h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditingTest(undefined);
+            setShowForm(true);
+          }}
           className="px-4 py-2 bg-blue-600 text-white rounded"
         >
           Create Test
@@ -356,9 +417,17 @@ const RecruiterTests: React.FC = () => {
                   <td className="p-2">{stats.avg.toFixed(1)}</td>
                   <td className="p-2 space-x-2">
                     <button
+                      onClick={() => handleEditClick(t)}
+                      className="text-blue-600 hover:underline"
+                    >Edit</button>
+                    <button
+                      onClick={() => handleDeleteTest(t._id)}
+                      className="text-red-600 hover:underline"
+                    >Delete</button>
+                    <button
                       onClick={() => assignTest(t._id)}
                       className="text-blue-600 hover:underline"
-                    >Assign Test</button>
+                    >Assign Job</button>
                     <button
                       onClick={() => viewResults(t._id)}
                       className="text-green-600 hover:underline"
@@ -405,9 +474,36 @@ const RecruiterTests: React.FC = () => {
 
       {showForm && (
         <TestFormModal
+          existing={editingTest}
           onSave={handleFormSave}
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setEditingTest(undefined);
+          }}
         />
+      )}
+
+      {assignModalTestId && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 relative">
+            <button onClick={() => setAssignModalTestId(null)} className="absolute top-3 right-3 text-gray-600 hover:text-gray-800">✕</button>
+            <h2 className="text-xl font-semibold mb-4">Assign Test to Job</h2>
+            <select
+              value={selectedJobId}
+              onChange={(e) => setSelectedJobId(e.target.value)}
+              className="border p-2 rounded w-full mb-4"
+            >
+              <option value="">Select a Job</option>
+              {jobs.map(j => (
+                <option key={j._id} value={j._id}>{j.title}</option>
+              ))}
+            </select>
+            <div className="flex justify-end space-x-2">
+              <button onClick={() => setAssignModalTestId(null)} className="px-4 py-2 border rounded bg-gray-100">Cancel</button>
+              <button onClick={handleAssignTestConfirm} className="px-4 py-2 bg-blue-600 text-white rounded">Assign</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

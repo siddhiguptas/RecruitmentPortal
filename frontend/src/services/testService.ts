@@ -88,8 +88,8 @@ export const startTest = async (testId: string): Promise<any> => {
   try {
     const response = await api.post(`/tests/${testId}/start`);
     return response.data;
-  } catch (error) {
-    console.error("Error starting test:", error);
+  } catch (error: any) {
+    console.error("🚨 400 Backend Message:", error.response?.data?.message || error.response?.data);
     throw error;
   }
 };
@@ -191,6 +191,45 @@ export const createTest = async (testData: any): Promise<Test> => {
     return response.data;
   } catch (error) {
     console.error("Error creating test:", error);
+    throw error;
+  }
+};
+
+/**
+ * Assign a test to a job (Recruiter only)
+ */
+export const assignTestToJob = async (testId: string, jobId: string): Promise<any> => {
+  try {
+    const response = await api.post(`/tests/${testId}/assign`, { jobId });
+    return response.data;
+  } catch (error) {
+    console.error("Error assigning test:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a test (Recruiter only)
+ */
+export const updateTest = async (testId: string, testData: any): Promise<Test> => {
+  try {
+    const response = await api.put(`/tests/${testId}`, testData);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating test:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a test (Recruiter only)
+ */
+export const deleteTest = async (testId: string): Promise<any> => {
+  try {
+    const response = await api.delete(`/tests/${testId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting test:", error);
     throw error;
   }
 };

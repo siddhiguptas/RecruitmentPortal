@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  Timer, 
-  ChevronLeft, 
-  ChevronRight, 
-  Send, 
-  AlertTriangle, 
-  Camera, 
-  CheckCircle2, 
+import {
+  Timer,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
   Loader2,
   Info,
   ShieldCheck,
@@ -37,7 +37,7 @@ interface Test {
 const OnlineTest = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
-  
+
   // State
   const [test, setTest] = useState<Test | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,8 @@ const OnlineTest = () => {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [timeLeft, setTimeLeft] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [hasTestStarted, setHasTestStarted] = useState(false);
   const [alerts, setAlerts] = useState<string[]>([]);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,8 +55,8 @@ const OnlineTest = () => {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const proctoringIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasSubmittedRef = useRef(false);
 
   // Mock data for testing if API fails
   const mockTest: Test = {
@@ -144,7 +145,6 @@ const OnlineTest = () => {
 
     return () => {
       stopProctoring();
-      stopTimer();
       socketService.off("cheating_alert", handleCheatingAlert);
       socketService.off("proctor_connection_error", handleProctorConnectionError);
       socketService.disconnect();
@@ -176,11 +176,11 @@ const OnlineTest = () => {
       setTest(normalized);
       setTimeLeft(normalized.duration * 60);
     } catch (err: any) {
-      if (err.response?.status === 400 && err.response?.data?.message?.includes("already completed")) {
-        setStatus("submitted");
+      console.warn(err);
+      if (err.response?.status === 400) {
+        alert(err.response?.data?.message || "Error loading test details.");
         return;
       }
-      console.warn(err);
       // Fallback to mock on other errors
       const normalized = normalizeTest(mockTest);
       setTest(normalized);
@@ -209,39 +209,39 @@ const OnlineTest = () => {
         if (result?.test) {
           const normalized = normalizeTest(result.test);
           setTest(normalized);
-          if (typeof result.timeRemaining === "number") {
-            setTimeLeft(result.timeRemaining);
+
+          let initialTime = (normalized.duration || 30) * 60;
+
+          if (typeof result.timeRemaining === "number" && result.timeRemaining > 0) {
+            // Heuristic check: If backend sends '2' for a 2 min test, convert to seconds.
+            // If it sends a massive number, assume it is already in seconds.
+            initialTime = result.timeRemaining <= 300 ? result.timeRemaining * 60 : result.timeRemaining;
+          } else if (typeof result.timeRemaining === "number" && result.timeRemaining <= 0) {
+            initialTime = 60; // minimum 60s
           }
+
+          console.log('🕒 Test Started. initialTime:', initialTime);
+          setTimeLeft(initialTime);
+          setHasTestStarted(true);
         }
-      } catch (startErr) {
-        console.warn("Failed to start test via API, continuing in mock mode.", startErr);
+      } catch (startErr: any) {
+        console.error("Failed to start test via API", startErr);
+        if (startErr.response?.data?.message) {
+          alert(startErr.response.data.message);
+          return;
+        }
+        alert("Cannot start test due to a server error.");
+        return;
       }
 
       setStatus("in-progress");
-      startTimer();
       startProctoring();
-      
+
       // Notify backend via socket
       socketService.emit("start_exam", { testId, timestamp: new Date() });
     } catch (err) {
       alert("Camera access is required for proctoring. Please enable it to start the exam.");
     }
-  };
-
-  const startTimer = () => {
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          submitExam();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const stopTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const startProctoring = () => {
@@ -270,7 +270,7 @@ const OnlineTest = () => {
       canvas.height = 225;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const base64Frame = canvas.toDataURL("image/jpeg", 0.5); // Compressed
-      
+
       socketService.emit("video_frame", base64Frame);
     }
   };
@@ -287,11 +287,23 @@ const OnlineTest = () => {
     }
   };
 
-  const submitExam = async () => {
+  const submitExam = useCallback(async () => {
+    if (!test || !test.questions || test.questions.length === 0) {
+      console.warn("🚨 Cannot submit an empty test! Missing questions.");
+      return;
+    }
+
+    if (hasSubmittedRef.current) {
+      console.log("Submission blocked by useRef lock.");
+      return;
+    }
+    hasSubmittedRef.current = true;
+
+    if (isSubmitting) return; // strict double-fire prevention
     setIsSubmitting(true);
-    stopTimer();
     stopProctoring();
-    
+    setHasTestStarted(false);
+
     try {
       if (attemptId) {
         await submitTest(attemptId);
@@ -299,7 +311,7 @@ const OnlineTest = () => {
         // Mock success if API fails
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
-      
+
       socketService.emit("exam_end", { testId, timestamp: new Date() });
       setStatus("submitted");
     } catch (err) {
@@ -307,9 +319,40 @@ const OnlineTest = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [attemptId, testId]);
 
-  const formatTime = (seconds: number) => {
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval>;
+
+    if (status === "in-progress" && hasTestStarted) {
+      intervalId = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            console.log("[Timer] Countdown reached 0. Auto-submit disabled. User must manually submit.");
+            clearInterval(intervalId);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [status, hasTestStarted, submitExam]);
+
+  // 2. Safe Submission Trigger (Disabled)
+  useEffect(() => {
+    // Auto-submission is completely disabled per user request.
+    if (timeLeft === 0) {
+      console.log('🚨 Timer expired. User must manually submit.');
+    }
+  }, [timeLeft]);
+
+  const formatTime = (seconds: number | null) => {
+    if (seconds === null) return "--:--";
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
@@ -327,7 +370,7 @@ const OnlineTest = () => {
   if (status === "submitted") {
     return (
       <div className="max-w-xl mx-auto text-center py-16 space-y-6">
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8"
@@ -356,7 +399,7 @@ const OnlineTest = () => {
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">{test.title}</h1>
           <p className="text-slate-500 mb-8">{test.description}</p>
-          
+
           <div className="grid sm:grid-cols-2 gap-6 mb-8">
             <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl">
               <Timer className="text-slate-400 mt-1" size={20} />
@@ -415,7 +458,7 @@ const OnlineTest = () => {
             </span>
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold text-lg",
-              timeLeft < 300 ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-900"
+              (timeLeft !== null && timeLeft < 300) ? "bg-rose-50 text-rose-600 animate-pulse" : "bg-slate-50 text-slate-900"
             )}>
               <Timer size={20} />
               {formatTime(timeLeft)}
@@ -462,7 +505,7 @@ const OnlineTest = () => {
             <ChevronLeft size={18} />
             Previous
           </Button>
-          
+
           <div className="flex items-center gap-2">
             {currentQuestionIdx === test.questions.length - 1 ? (
               <Button onClick={submitExam} isLoading={isSubmitting} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
@@ -538,22 +581,22 @@ const OnlineTest = () => {
                   currentQuestionIdx === idx
                     ? "bg-emerald-600 border-emerald-600 text-white shadow-lg shadow-emerald-200"
                     : answers[q._id] !== undefined
-                    ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                    : "bg-slate-50 border-slate-50 text-slate-400 hover:border-slate-200"
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                      : "bg-slate-50 border-slate-50 text-slate-400 hover:border-slate-200"
                 )}
               >
                 {idx + 1}
               </button>
             ))}
           </div>
-          
+
           <div className="mt-auto pt-6 border-t border-slate-50 space-y-3">
             <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
               <span>Progress</span>
               <span>{Math.round((Object.keys(answers).length / test.questions.length) * 100)}%</span>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <motion.div 
+              <motion.div
                 className="h-full bg-emerald-500"
                 initial={{ width: 0 }}
                 animate={{ width: `${(Object.keys(answers).length / test.questions.length) * 100}%` }}

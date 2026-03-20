@@ -2,6 +2,8 @@ import { Response } from "express";
 import mongoose from "mongoose";
 import { Test } from "../models/Test";
 import { TestAttempt } from "../models/TestAttempt";
+import { Job } from "../models/Job";
+import { Application } from "../models/Application";
 import { AuthRequest } from "../types";
 
 /**
@@ -9,13 +11,25 @@ import { AuthRequest } from "../types";
  */
 export const getAvailableTests = async (req: AuthRequest, res: Response) => {
   try {
+    const applications = await Application.find({ student: req.user._id }).select('job');
+    const appliedJobIds = applications.map(app => app.job);
+
     const tests = await Test.find({
       isActive: true,
       $or: [
         { startTime: { $exists: false } },
         { startTime: { $lte: new Date() } }
+      ],
+      $and: [
+        {
+          $or: [
+            { jobs: { $exists: false } },
+            { jobs: { $size: 0 } },
+            { jobs: { $in: appliedJobIds } }
+          ]
+        }
       ]
-    }).populate('createdBy', 'name').select('title company type duration totalQuestions difficulty deadline passingScore createdAt');
+    }).populate('createdBy', 'name').select('title company type duration totalQuestions difficulty deadline passingScore createdAt jobs');
 
     res.json(tests);
   } catch (error: any) {
@@ -108,6 +122,7 @@ export const startTest = async (req: AuthRequest, res: Response) => {
     const { testId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(testId)) {
+      console.log("🚨 Start Test Rejected:", "Invalid test ID");
       return res.status(400).json({ message: "Invalid test ID" });
     }
 
@@ -115,6 +130,16 @@ export const startTest = async (req: AuthRequest, res: Response) => {
     const test = await Test.findById(testId);
     if (!test || !test.isActive) {
       return res.status(404).json({ message: "Test not found or inactive" });
+    }
+
+    if (test.type === 'MCQ' && (!test.questions || test.questions.length === 0)) {
+      console.log("🚨 Start Test Rejected:", "Cannot start test: This test has no questions");
+      return res.status(400).json({ message: "Cannot start test: This test has no questions" });
+    }
+
+    if (test.type === 'Coding' && (!test.codingProblems || test.codingProblems.length === 0)) {
+      console.log("🚨 Start Test Rejected:", "Cannot start test: This test has no coding problems");
+      return res.status(400).json({ message: "Cannot start test: This test has no coding problems" });
     }
 
     // Check for completed attempt
@@ -125,6 +150,7 @@ export const startTest = async (req: AuthRequest, res: Response) => {
     });
 
     if (completedAttempt) {
+      console.log("🚨 Start Test Rejected:", "Test already completed. Retakes are not allowed.");
       return res.status(400).json({ message: "Test already completed. Retakes are not allowed." });
     }
 
@@ -137,24 +163,24 @@ export const startTest = async (req: AuthRequest, res: Response) => {
 
     // If no in-progress attempt, create a new one
     if (!attempt) {
-      const initialAnswers = test.type === 'MCQ' 
+      const initialAnswers = test.type === 'MCQ'
         ? test.questions.map((_, idx) => ({
-            questionIndex: idx,
-            selectedAnswer: undefined,
-            timeSpent: 0,
-            isCorrect: false
-          }))
+          questionIndex: idx,
+          selectedAnswer: undefined,
+          timeSpent: 0,
+          isCorrect: false
+        }))
         : [];
 
       const initialCodingAnswers = test.type === 'Coding'
         ? test.codingProblems.map((_, idx) => ({
-            problemIndex: idx,
-            code: "",
-            language: "javascript",
-            timeSpent: 0,
-            testResults: [],
-            score: 0
-          }))
+          problemIndex: idx,
+          code: "",
+          language: "javascript",
+          timeSpent: 0,
+          testResults: [],
+          score: 0
+        }))
         : [];
 
       attempt = await TestAttempt.create({
@@ -198,11 +224,16 @@ export const startTest = async (req: AuthRequest, res: Response) => {
       }));
     }
 
+    const durationMs = (test.duration || 0) * 60 * 1000;
+    const expiresAt = new Date(new Date(attempt.startedAt).getTime() + durationMs);
+    const now = Date.now();
+    const timeRemaining = Math.max(0, Math.floor((expiresAt.getTime() - now) / 1000));
+
     res.json({
       attemptId: attempt._id,
       test: testData,
       startedAt: attempt.startedAt,
-      timeRemaining: test.duration * 60 // in seconds
+      timeRemaining: timeRemaining
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -494,4 +525,127 @@ export const createTest = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
-};
+};
+
+/**
+ * Assign a test to a job (Recruiter only)
+ */
+export const assignTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+    const { jobId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(testId) || !mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ message: "Invalid test ID or job ID" });
+    }
+
+    const test = await Test.findById(testId);
+    if (!test) return res.status(404).json({ message: "Test not found" });
+
+    // Validate the job belongs to the recruiter
+    const job = await Job.findOne({ _id: jobId, recruiter: req.user._id });
+    if (!job) return res.status(404).json({ message: "Job not found or you don't have permission" });
+
+    // Assign the job to the test: Add to the jobs array without duplicates
+    if (!test.jobs) test.jobs = [];
+    if (!test.jobs.includes(jobId)) {
+      test.jobs.push(jobId);
+      await test.save();
+    }
+
+    res.json({ message: "Test assigned to job successfully", test });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Update/Edit a test (Recruiter only)
+ */
+export const updateTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(testId)) {
+      return res.status(400).json({ message: "Invalid test ID" });
+    }
+
+    const test = await Test.findOneAndUpdate(
+      { _id: testId, createdBy: req.user._id }, // Ensure recruiter owns it
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
+    if (!test) {
+      return res.status(404).json({ message: "Test not found or unauthorized to edit" });
+    }
+
+    res.json({ message: "Test updated successfully", test });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Delete a test (Recruiter only)
+ */
+export const deleteTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(testId)) {
+      return res.status(400).json({ message: "Invalid test ID" });
+    }
+
+    const test = await Test.findOneAndDelete({
+      _id: testId,
+      createdBy: req.user._id
+    });
+
+    if (!test) {
+      return res.status(404).json({ message: "Test not found or unauthorized to delete" });
+    }
+
+    // Cascade delete: cleanup TestAttempts related to this test
+    await TestAttempt.deleteMany({ test: testId });
+
+    res.json({ message: "Test deleted successfully" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * Get all attempts/results for a specific test (Recruiter only)
+ */
+export const getTestResultsByTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(testId)) {
+      return res.status(400).json({ message: "Invalid test ID" });
+    }
+
+    // Verify test exists and is owned by recruiter
+    const test = await Test.findOne({ _id: testId, createdBy: req.user._id });
+    if (!test) {
+      return res.status(404).json({ message: "Test not found or unauthorized" });
+    }
+
+    // Find all attempts
+    const attempts = await TestAttempt.find({ test: testId, status: "completed" })
+      .populate('student', 'name email')
+      .sort({ submittedAt: -1 });
+
+    // Format for frontend
+    const results = attempts.map(attempt => ({
+      studentName: (attempt.student as any)?.name || 'Unknown',
+      score: attempt.percentage,
+      attemptedAt: attempt.submittedAt
+    }));
+
+    res.json(results);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

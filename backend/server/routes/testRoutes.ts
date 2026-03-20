@@ -11,6 +11,10 @@ import {
   autoSubmitTest,
   createTest,
   getRecruiterTests,
+  assignTest,
+  updateTest,
+  deleteTest,
+  getTestResultsByTest,
 } from "../controllers/testController";
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -27,6 +31,18 @@ router.get("/recruiter", authorize("recruiter"), getRecruiterTests);
 
 // Create a new test (Recruiter only)
 router.post("/", authorize("recruiter"), createTest);
+
+// Assign a test to a job
+router.post("/:testId/assign", authorize("recruiter"), assignTest);
+
+// Update/Edit a test
+router.put("/:testId", authorize("recruiter"), updateTest);
+
+// Delete a test
+router.delete("/:testId", authorize("recruiter"), deleteTest);
+
+// Get results for a specific test (Recruiter only)
+router.get("/:testId/results", authorize("recruiter"), getTestResultsByTest);
 
 // Get test history and results
 router.get("/results/all", getTestResults);
